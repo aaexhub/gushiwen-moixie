@@ -51,7 +51,7 @@ h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spac
 <body>
 <div class="container">
 <h1>📜 古诗文默写</h1>
-<p class="subtitle">八年级(下) · 每天10题 · 151题完整版 · 错题巩固</p>
+<p class="subtitle">八年级(下) · 每天5题 · 151题完整版 · 错题巩固</p>
 <div class="tabs">
 <div class="tab active" onclick="switchTab('daily')">📝 每日练习</div>
 <div class="tab" onclick="switchTab('wrong')" id="wrongTab">❌ 错题库<span class="badge" id="wrongBadge" style="display:none">0</span></div>
@@ -65,7 +65,7 @@ h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spac
 <div id="dailyPanel">
 <div class="day-info" id="dayInfo"></div>
 <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-<div class="score-bar"><span id="answeredCount">已答 0/10</span><span id="timerDisplay">⏱ 00:00</span></div>
+<div class="score-bar"><span id="answeredCount">已答 0/5</span><span id="timerDisplay">⏱ 00:00</span></div>
 <div id="quizArea"></div>
 <div class="btn-row" id="dailyBtns">
 <button class="btn btn-primary" onclick="submitAll('daily')">提交批改</button>
@@ -75,7 +75,7 @@ h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spac
 <div class="big-score" id="dailyScore">0</div>
 <div class="label">得分</div>
 <div class="detail" id="dailyDetail"></div>
-<button class="btn btn-secondary" style="margin-top:12px" onclick="startDaily()">再做10题</button>
+<button class="btn btn-secondary" style="margin-top:12px" onclick="startDaily()">再做5题</button>
 </div>
 </div>
 <div id="wrongPanel" style="display:none">
@@ -321,6 +321,7 @@ function addPinyinToText(text) {
 }
 
 let currentTab='daily', currentQuestions=[], submitted=false, timerInterval, seconds=0;
+const DAILY_QUESTION_COUNT = 5; // 每天题目数量
 
 // ====== LocalStorage ======
 function load(k,d){try{const v=localStorage.getItem('gsw_'+k);return v?JSON.parse(v):d}catch{return d}}
@@ -353,13 +354,13 @@ function getDailyQIds(){
     selectedIds=wrongPool.slice(0,wrongCount);
   }
   
-  // 从剩余题库中随机选择题目补足10题
+  // 从剩余题库中随机选择题目补足DAILY_QUESTION_COUNT题
   let pool=ALL_QUESTIONS.filter(q=>!done.has(q.id) && !selectedIds.includes(q.id));
-  if(pool.length<(10-selectedIds.length)) pool=ALL_QUESTIONS.filter(q=>!selectedIds.includes(q.id));
+  if(pool.length<(DAILY_QUESTION_COUNT-selectedIds.length)) pool=ALL_QUESTIONS.filter(q=>!selectedIds.includes(q.id));
   
   // 随机选择剩余题目
   for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
-  const remainingIds=pool.slice(0,10-selectedIds.length).map(q=>q.id);
+  const remainingIds=pool.slice(0,DAILY_QUESTION_COUNT-selectedIds.length).map(q=>q.id);
   
   // 合并题目ID
   const ids=[...selectedIds,...remainingIds];
