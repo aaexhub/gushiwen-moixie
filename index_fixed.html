@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>古诗文默写系统 · 八年级(下)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;background:linear-gradient(135deg,#f5f0e8 0%,#e8e0d0 100%);min-height:100vh;color:#3a2e1f}
+.container{max-width:700px;margin:0 auto;padding:15px}
+h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spacing:4px}
+.subtitle{text-align:center;color:#9a8060;font-size:0.85em;margin-bottom:15px}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:18px}
+.tab{padding:8px 22px;border-radius:20px;font-size:0.9em;cursor:pointer;border:2px solid #d4c4aa;background:#fffef9;color:#6b3a2a;transition:all .2s;font-family:inherit}
+.tab.active{background:linear-gradient(135deg,#8b5e3c,#a67c52);color:#fff;border-color:#8b5e3c}
+.tab .badge{display:inline-block;background:#e06050;color:#fff;border-radius:10px;font-size:0.7em;padding:1px 6px;margin-left:4px;min-width:16px;text-align:center}
+.progress-bar{background:#e0d5c5;border-radius:10px;height:8px;margin-bottom:15px;overflow:hidden}
+.progress-fill{background:linear-gradient(90deg,#8b5e3c,#c49a6c);height:100%;border-radius:10px;transition:width .4s}
+.score-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:.85em;color:#8a7560}
+.card{background:#fffef9;border-radius:12px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(100,70,40,.08);border:1px solid #e8ddd0;transition:all .3s}
+.card.correct{border-color:#6abf69;background:#f6faf6}
+.card.wrong{border-color:#e06050;background:#fdf6f5}
+.card .q-num{display:inline-block;background:#8b5e3c;color:#fff;border-radius:50%;width:24px;height:24px;text-align:center;line-height:24px;font-size:.75em;margin-right:6px}
+.card .source{color:#9a8060;font-size:.78em;margin-top:4px}
+.card .line{margin:6px 0;font-size:1em;line-height:2}
+.card .line input{border:none;border-bottom:2px dashed #c4a87a;background:transparent;font-size:1em;font-family:inherit;color:#3a2e1f;width:130px;padding:2px 4px;outline:none;transition:border-color .3s}
+.card .line input:focus{border-color:#8b5e3c}
+.card .line input.correct-input{border-color:#6abf69;color:#2d7d2d;background:#eef8ee;border-bottom-style:solid}
+.card .line input.wrong-input{border-color:#e06050;color:#c03020;background:#fef0ee;border-bottom-style:solid}
+.card .answer-reveal{color:#2d7d2d;font-size:.85em;margin-top:4px;display:none}
+.btn-row{text-align:center;margin:20px 0}
+.btn{display:inline-block;padding:10px 26px;border-radius:8px;font-size:.95em;cursor:pointer;border:none;font-family:inherit;transition:all .2s;margin:0 5px}
+.btn-primary{background:linear-gradient(135deg,#8b5e3c,#a67c52);color:#fff;box-shadow:0 3px 10px rgba(100,60,30,.2)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 5px 15px rgba(100,60,30,.3)}
+.btn-secondary{background:#e8ddd0;color:#6b3a2a}
+.btn-secondary:hover{background:#ddd0c0}
+.btn-danger{background:#e06050;color:#fff}
+.result-panel{background:#fffef9;border-radius:12px;padding:22px;margin:15px 0;box-shadow:0 2px 10px rgba(100,70,40,.08);border:1px solid #e8ddd0;text-align:center;display:none}
+.result-panel .big-score{font-size:2.8em;color:#8b5e3c;font-weight:bold}
+.result-panel .label{color:#9a8060;font-size:.85em;margin-top:4px}
+.result-panel .detail{margin-top:12px;font-size:.88em;color:#6b5a48;line-height:1.8}
+.empty-msg{text-align:center;color:#9a8060;padding:40px 0;font-size:1em}
+.day-info{text-align:center;color:#9a8060;font-size:.85em;margin-bottom:12px}
+.stats-row{display:flex;justify-content:center;gap:20px;margin-bottom:15px;font-size:.85em;color:#8a7560}
+.stats-row span{background:#fffef9;padding:4px 12px;border-radius:12px;border:1px solid #e8ddd0}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📜 古诗文默写</h1>
+<p class="subtitle">八年级(下) · 每天5题 · 错题巩固</p>
+<div class="tabs">
+<div class="tab active" onclick="switchTab('daily')">📝 每日练习</div>
+<div class="tab" onclick="switchTab('wrong')" id="wrongTab">❌ 错题库<span class="badge" id="wrongBadge" style="display:none">0</span></div>
+</div>
+<div class="stats-row">
+<span id="statTotal">累计练习 0 题</span>
+<span id="statCorrect">正确率 --</span>
+<span id="statStreak">🔥 连续 0 天</span>
+</div>
+<div id="dailyPanel">
+<div class="day-info" id="dayInfo"></div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+<div class="score-bar"><span id="answeredCount">已答 0/5</span><span id="timerDisplay">⏱ 00:00</span></div>
+<div id="quizArea"></div>
+<div class="btn-row" id="dailyBtns">
+<button class="btn btn-primary" onclick="submitAll('daily')">提交批改</button>
+<button class="btn btn-secondary" onclick="redoDaily()">🔄 重做</button>
+</div>
+<div class="result-panel" id="dailyResult">
+<div class="big-score" id="dailyScore">0</div>
+<div class="label">得分</div>
+<div class="detail" id="dailyDetail"></div>
+<button class="btn btn-secondary" style="margin-top:12px" onclick="startDaily()">再做5题</button>
+</div>
+</div>
+<div id="wrongPanel" style="display:none">
+<div id="wrongArea"></div>
+<div class="btn-row" id="wrongBtns">
+<button class="btn btn-primary" onclick="submitAll('wrong')">提交批改</button>
+<button class="btn btn-secondary" onclick="startWrong()">🔄 重做</button>
+<button class="btn btn-danger" onclick="clearWrong()">清空错题库</button>
+</div>
+<div class="result-panel" id="wrongResult">
+<div class="big-score" id="wrongScore">0</div>
+<div class="label">得分</div>
+<div class="detail" id="wrongDetail"></div>
+<button class="btn btn-secondary" style="margin-top:12px" onclick="startWrong()">再练一遍</button>
+</div>
+</div>
+</div>
+
+<script>
+// ====== 题库 ======
+const ALL_QUESTIONS = [
+  {id:1,d:"____，只有香如故。",s:"陆游《卜算子·咏梅》",a:["零落成泥碾作尘"]},
+  {id:2,d:"浮云游子意，____",s:"李白《送友人》",a:["落日故人情"]},
+  {id:3,d:"竹径通幽处，____",s:"常建《题破山寺后禅院》",a:["禅房花木深"]},
+  {id:4,d:"安得广厦千万间，____，____",s:"杜甫《茅屋为秋风所破歌》",a:["大庇天下寒士俱欢颜","风雨不动安如山"]},
+  {id:5,d:"____，如闻泣幽咽。",s:"杜甫《石壕吏》",a:["夜久语声绝"]},
+  {id:6,d:"俄顷风定云墨色，____",s:"杜甫《茅屋为秋风所破歌》",a:["秋天漠漠向昏黑"]},
+  {id:7,d:"____，落日故人情。",s:"李白《送友人》",a:["浮云游子意"]},
+  {id:8,d:"黄发垂髫，____",s:"陶渊明《桃花源记》",a:["并怡然自乐"]},
+  {id:9,d:"凄神寒骨，____",s:"柳宗元《小石潭记》",a:["悄怆幽邃"]},
+  {id:10,d:"____，同是宦游人。",s:"王勃《送杜少府之任蜀州》",a:["与君离别意"]},
+  {id:11,d:"坐观垂钓者，____",s:"孟浩然《望洞庭湖上张丞相》",a:["徒有羡鱼情"]},
+  {id:12,d:"____，寂寞沙洲冷。",s:"苏轼《卜算子·黄州定慧院寓居作》",a:["拣尽寒枝不肯栖"]},
+  {id:13,d:"无意苦争春，____",s:"陆游《卜算子·咏梅》",a:["一任群芳妒"]},
+  {id:14,d:"____，不必藏于己。",s:"《大道之行也》",a:["货恶其弃于地也"]},
+  {id:15,d:"求之不得，____。悠哉悠哉，____",s:"《关雎》",a:["寤寐思服","辗转反侧"]},
+  {id:16,d:"与君离别意，同是宦游人。____，____",s:"《送杜少府之任蜀州》",a:["海内存知己","天涯若比邻"]},
+  {id:17,d:"____，不可知其源。",s:"《小石潭记》",a:["其岸势犬牙差互"]},
+  {id:18,d:"虽有至道，弗学，____",s:"《礼记·虽有嘉肴》",a:["不知其善也"]},
+  {id:19,d:"蒹葭苍苍，白露为霜。____，在水一方。",s:"《诗经·蒹葭》",a:["所谓伊人"]},
+  {id:20,d:"挥手自兹去，____",s:"《送友人》",a:["萧萧班马鸣"]},
+  {id:21,d:"谁见幽人独往来，____",s:"《卜算子·黄州定慧院寓居作》",a:["缥缈孤鸿影"]},
+  {id:22,d:"青青子衿，悠悠我心。纵我不往，____？",s:"《子衿》",a:["子宁不嗣音"]},
+  {id:23,d:"蒹葭采采，____",s:"《蒹葭》",a:["白露未已"]},
+  {id:24,d:"青青子衿，____",s:"《子衿》",a:["悠悠我心"]},
+  {id:25,d:"水击三千里，____，去以六月息者也。",s:"《庄子·北冥有鱼》",a:["抟扶摇而上者九万里"]},
+  {id:26,d:"____，盗窃乱贼而不作，故外户而不闭。是谓大同。",s:"《礼记·大道之行也》",a:["是故谋闭而不兴"]},
+  {id:27,d:"万籁此都寂，____",s:"常建《题破山寺后禅院》",a:["但余钟磬音"]},
+  {id:28,d:"欲济无舟楫，____",s:"孟浩然《望洞庭湖上张丞相》",a:["端居耻圣明"]},
+  {id:29,d:"是故谋闭而不兴，____，故外户而不闭。",s:"《大道之行也》",a:["盗窃乱贼而不作"]},
+  {id:30,d:"____，白露为霜。",s:"《蒹葭》",a:["蒹葭苍苍"]},
+  {id:31,d:"社会主义路上大踏步走，____！",s:"贺敬之《回延安》",a:["延安精神放心头"]},
+  {id:32,d:"鹏之徙于南冥也，水击三千里，____",s:"庄子《北冥有鱼》",a:["抟扶摇而上者九万里"]},
+  {id:33,d:"____，鸡犬相闻。",s:"陶渊明《桃花源记》",a:["阡陌交通"]},
+  {id:34,d:"海内存知己，____",s:"王勃《送杜少府之任蜀州》",a:["天涯若比邻"]},
+  {id:35,d:"拣尽寒枝不肯栖，____",s:"苏轼《卜算子·黄州定慧院寓居作》",a:["寂寞沙洲冷"]},
+  {id:36,d:"仁者见仁，____",s:"《周易》",a:["智者见智"]},
+  {id:37,d:"____，禅房花木深。",s:"常建《题破山寺后禅院》",a:["竹径通幽处"]},
+  {id:38,d:"中无杂树，芳草鲜美，____",s:"陶渊明《桃花源记》",a:["落英缤纷"]},
+  {id:39,d:"____，吾庐独破受冻死亦足！",s:"杜甫《茅屋为秋风所破歌》",a:["何时眼前突兀见此屋"]},
+  {id:40,d:"树梢树枝树根根，____",s:"贺敬之《回延安》",a:["亲山亲水有亲人"]},
+  {id:41,d:"窈窕淑女，____",s:"《关雎》",a:["君子好逑"]},
+  {id:42,d:"____，天涯若比邻。",s:"王勃《送杜少府之任蜀州》",a:["海内存知己"]},
+  {id:43,d:"____，其翼若垂天之云。",s:"《北冥有鱼》",a:["怒而飞"]},
+  {id:44,d:"____，教然后知困。",s:"《虽有嘉肴》",a:["学然后知不足"]},
+  {id:45,d:"____，心忧炭贱愿天寒。",s:"白居易《卖炭翁》",a:["可怜身上衣正单"]},
+  {id:46,d:"____，但余钟磬音。",s:"《题破山寺后禅院》",a:["万籁此都寂"]},
+  {id:47,d:"____，潭影空人心。",s:"常建《题破山寺后禅院》",a:["山光悦鸟性"]},
+  {id:48,d:"夜久语声绝，____",s:"杜甫《石壕吏》",a:["如闻泣幽咽"]},
+  {id:49,d:"____，君子好逑。",s:"《诗经·周南·关雎》",a:["窈窕淑女"]},
+  {id:50,d:"是故学然后知不足，____",s:"《虽有嘉肴》",a:["教然后知困"]}
+];
+
+let currentTab='daily', currentQuestions=[], submitted=false, timerInterval, seconds=0;
+
+// ====== LocalStorage ======
+function load(k,d){try{const v=localStorage.getItem('gsw_'+k);return v?JSON.parse(v):d}catch{return d}}
+function save(k,v){localStorage.setItem('gsw_'+k,JSON.stringify(v))}
+
+function getState(){return load('state',{totalQ:0,totalCorrect:0,days:{},wrongIds:[],lastDate:null,streak:0})}
+function setState(s){save('state',s)}
+
+function todayKey(){return new Date().toISOString().slice(0,10)}
+
+// ====== 每日出题 ======
+function getDailyQIds(){
+  const s=getState(), tk=todayKey();
+  if(s.days[tk]) return s.days[tk]; // 今天已出过题
+  const done=new Set();
+  Object.values(s.days).forEach(ids=>ids.forEach(id=>done.add(id)));
+  let pool=ALL_QUESTIONS.filter(q=>!done.has(q.id));
+  if(pool.length<5) pool=ALL_QUESTIONS.slice(); // 题用完了就循环
+  // 随机选5题
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  const ids=pool.slice(0,5).map(q=>q.id);
+  s.days[tk]=ids;
+  // 更新连续天数
+  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  const yk=yesterday.toISOString().slice(0,10);
+  s.streak=s.days[yk]?(s.streak||0)+1:1;
+  s.lastDate=tk;
+  setState(s);
+  return ids;
+}
+
+function addQuestions(newQs){
+  const existing=new Set(ALL_QUESTIONS.map(q=>q.id));
+  newQs.forEach(q=>{if(!existing.has(q.id))ALL_QUESTIONS.push(q)});
+}
+
+// ====== 渲染 ======
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab:${tab==='daily'?'first':'last'}-child`).classList.add('active');
+  document.getElementById('dailyPanel').style.display=tab==='daily'?'block':'none';
+  document.getElementById('wrongPanel').style.display=tab==='wrong'?'block':'none';
+  if(tab==='daily')startDaily(); else startWrong();
+}
+
+function renderQuiz(qs,areaId){
+  const area=document.getElementById(areaId);
+  area.innerHTML='';
+  qs.forEach((q,qi)=>{
+    let html=`<div class="card" id="card_${areaId}_${qi}"><span class="q-num">${qi+1}</span>`;
+    let bi=0;
+    q.lines.forEach(line=>{
+      let l=line;
+      while(l.includes('____')){
+        l=l.replace('____',`<input type="text" data-qi="${qi}" data-bi="${bi}" data-area="${areaId}" class="blank-input" autocomplete="off">`);
+        bi++;
+      }
+      html+=`<div class="line">${l}</div>`;
+    });
+    html+=`<div class="source">${q.sources.join('；')}</div>`;
+    html+=`<div class="answer-reveal" id="reveal_${areaId}_${qi}"></div></div>`;
+    area.innerHTML+=html;
+  });
+  area.querySelectorAll('.blank-input').forEach(inp=>{
+    inp.addEventListener('input',()=>updateProgress(areaId,qs));
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){e.preventDefault();const all=[...area.querySelectorAll('.blank-input')];const idx=all.indexOf(e.target);if(idx<all.length-1)all[idx+1].focus()}
+    });
+  });
+  submitted=false;
+  startTimer();
+}
+
+function updateProgress(areaId,qs){
+  const inputs=document.querySelectorAll(`#${areaId} .blank-input`);
+  let filled=0;inputs.forEach(i=>{if(i.value.trim())filled++});
+  const total=qs.reduce((s,q)=>s+q.bc,0);
+  if(areaId==='quizArea'){
+    document.getElementById('progressFill').style.width=(filled/total*100)+'%';
+    document.getElementById('answeredCount').textContent=`已答 ${filled}/${total}`;
+  }
+}
+
+function startTimer(){
+  seconds=0;clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    seconds++;
+    const m=String(Math.floor(seconds/60)).padStart(2,'0');
+    const s=String(seconds%60).padStart(2,'0');
+    document.getElementById('timerDisplay').textContent=`⏱ ${m}:${s}`;
+  },1000);
+}
+
+function submitAll(mode){
+  if(submitted)return;
+  submitted=true;clearInterval(timerInterval);
+  const areaId=mode==='daily'?'quizArea':'wrongArea';
+  const resultId=mode==='daily'?'dailyResult':'wrongResult';
+  const scoreId=mode==='daily'?'dailyScore':'wrongScore';
+  const detailId=mode==='daily'?'dailyDetail':'wrongDetail';
+  let correct=0,total=0,wrongQIds=[];
+  currentQuestions.forEach((q,qi)=>{
+    const card=document.getElementById(`card_${areaId}_${qi}`);
+    const reveal=document.getElementById(`reveal_${areaId}_${qi}`);
+    let qOk=true,revealHtml='<b>正确答案：</b>';
+    q.answers.forEach((a,bi)=>{
+      const inp=document.querySelector(`input[data-qi="${qi}"][data-bi="${bi}"][data-area="${areaId}"]`);
+      const val=inp.value.replace(/[\s，。、；：！？,.]/g,'');
+      const ans=a.replace(/[\s，。、；：！？,.]/g,'');
+      total++;
+      if(val===ans){inp.classList.add('correct-input');correct++}
+      else{inp.classList.add('wrong-input');if(!inp.value.trim())inp.value='(未作答)';qOk=false}
+      revealHtml+=` <span style="color:#2d7d2d">${a}</span>`;
+    });
+    card.classList.add(qOk?'correct':'wrong');
+    if(!qOk){reveal.style.display='block';reveal.innerHTML=revealHtml;wrongQIds.push(q.id)}
+  });
+  document.querySelectorAll(`#${areaId} .blank-input`).forEach(i=>i.disabled=true);
+  // 更新统计
+  const st=getState();
+  st.totalQ+=total;st.totalCorrect+=correct;
+  // 更新错题库：本次错的加入，本次对的从错题库移除
+  const curIds=currentQuestions.map(q=>q.id);
+  wrongQIds.forEach(id=>{if(!st.wrongIds.includes(id))st.wrongIds.push(id)});
+  curIds.forEach(id=>{if(!wrongQIds.includes(id)){st.wrongIds=st.wrongIds.filter(w=>w!==id)}});
+  setState(st);
+  // 显示结果
+  const score=Math.round(correct/total*100);
+  document.getElementById(scoreId).textContent=score;
+  document.getElementById(detailId).innerHTML=`共${total}空，答对${correct}空，答错${total-correct}空<br>用时 ${Math.floor(seconds/60)}分${seconds%60}秒`;
+  document.getElementById(resultId).style.display='block';
+  updateStats();updateWrongBadge();
+}
+
+function redoDaily(){
+  const st=getState(),tk=todayKey();
+  delete st.days[tk];
+  setState(st);
+  document.getElementById('dailyResult').style.display='none';
+  startDaily();
+}
+
+function startDaily(){
+  document.getElementById('dailyResult').style.display='none';
+  const ids=getDailyQIds();
+  currentQuestions=ids.map(id=>ALL_QUESTIONS.find(q=>q.id===id));
+  document.getElementById('dayInfo').textContent=`📅 ${todayKey()} · 第${Object.keys(getState().days).length}天`;
+  renderQuiz(currentQuestions,'quizArea');
+  updateStats();
+}
+
+function startWrong(){
+  document.getElementById('wrongResult').style.display='none';
+  const st=getState();
+  currentQuestions=st.wrongIds.map(id=>ALL_QUESTIONS.find(q=>q.id===id)).filter(Boolean);
+  if(currentQuestions.length===0){
+    document.getElementById('wrongArea').innerHTML='<div class="empty-msg">🎉 错题库为空，继续保持！</div>';
+    document.getElementById('wrongBtns').style.display='none';
+    return;
+  }
+  document.getElementById('wrongBtns').style.display='block';
+  renderQuiz(currentQuestions,'wrongArea');
+}
+
+function clearWrong(){
+  if(!confirm('确定清空错题库？'))return;
+  const st=getState();st.wrongIds=[];setState(st);
+  updateWrongBadge();startWrong();
+}
+
+function updateStats(){
+  const st=getState();
+  document.getElementById('statTotal').textContent=`累计练习 ${st.totalQ} 题`;
+  document.getElementById('statCorrect').textContent=st.totalQ?`正确率 ${Math.round(st.totalCorrect/st.totalQ*100)}%`:'正确率 --';
+  document.getElementById('statStreak').textContent=`🔥 连续 ${st.streak||0} 天`;
+}
+
+function updateWrongBadge(){
+  const n=getState().wrongIds.length;
+  const badge=document.getElementById('wrongBadge');
+  if(n>0){badge.style.display='inline';badge.textContent=n}else{badge.style.display='none'}
+}
+
+// 初始化
+startDaily();updateWrongBadge();
+</script>
+</body>
+</html>
