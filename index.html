@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>古诗文默写系统 · 八年级(下)</title>
+<title>古诗文默写系统 · 智能版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"PingFang SC","Microsoft YaHei","SimSun",serif;background:linear-gradient(135deg,#f5f0e8 0%,#e8e0d0 100%);min-height:100vh;color:#3a2e1f}
@@ -20,6 +20,8 @@ h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spac
 .card{background:#fffef9;border-radius:12px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(100,70,40,.08);border:1px solid #e8ddd0;transition:all .3s}
 .card.correct{border-color:#6abf69;background:#f6faf6}
 .card.wrong{border-color:#e06050;background:#fdf6f5}
+.card.mastered{border-color:#06d6a0;background:#f0fdf9}
+.card.skipped{border-color:#ffd166;background:#fffbf0}
 .card .q-num{display:inline-block;background:#8b5e3c;color:#fff;border-radius:50%;width:24px;height:24px;text-align:center;line-height:24px;font-size:.75em;margin-right:6px}
 .card .source{color:#9a8060;font-size:.78em;margin-top:4px}
 .card .line{margin:6px 0;font-size:1em;line-height:2}
@@ -36,7 +38,7 @@ h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spac
 .btn-secondary:hover{background:#ddd0c0}
 .btn-danger{background:#e06050;color:#fff}
 .result-panel{background:#fffef9;border-radius:12px;padding:22px;margin:15px 0;box-shadow:0 2px 10px rgba(100,70,40,.08);border:1px solid #e8ddd0;text-align:center;display:none}
-.result-panel .big-score{font-size:2.8em;color:#8b5e3c;font-weight:bold}
+.result-panel .big-score{font-size:2.8em;color:#8b3a2a;font-weight:bold}
 .result-panel .label{color:#9a8060;font-size:.85em;margin-top:4px}
 .result-panel .detail{margin-top:12px;font-size:.88em;color:#6b5a48;line-height:1.8}
 .empty-msg{text-align:center;color:#9a8060;padding:40px 0;font-size:1em}
@@ -46,157 +48,197 @@ h1{text-align:center;font-size:1.5em;color:#6b3a2a;margin:15px 0 5px;letter-spac
 /* 拼音标注样式 */
 .pinyin-char{position:relative;display:inline-block;margin:0 1px}
 .pinyin{position:absolute;top:-1.2em;left:0;font-size:0.6em;color:#9a8060;width:100%;text-align:center;white-space:nowrap}
+/* 按钮样式 */
+.action-buttons{display:flex;gap:8px;margin-top:8px}
+.btn-skip{padding:4px 12px;font-size:0.8em;background:#ffd166;color:#8a5a00;border:none;border-radius:6px;cursor:pointer;transition:all .2s}
+.btn-skip:hover{background:#ffc745}
+.btn-mastered{padding:4px 12px;font-size:0.8em;background:#06d6a0;color:#005f45;border:none;border-radius:6px;cursor:pointer;transition:all .2s}
+.btn-mastered:hover{background:#05c592}
+.btn-skip:disabled,.btn-mastered:disabled{opacity:0.5;cursor:not-allowed}
 </style>
 </head>
+
 <body>
 <div class="container">
-<h1>📜 古诗文默写</h1>
-<p class="subtitle">八年级(下) · 每天5题 · 151题完整版 · 错题巩固</p>
-<div class="tabs">
-<div class="tab active" onclick="switchTab('daily')">📝 每日练习</div>
-<div class="tab" onclick="switchTab('wrong')" id="wrongTab">❌ 错题库<span class="badge" id="wrongBadge" style="display:none">0</span></div>
-</div>
-<div class="stats-row">
-<span id="statTotalQuestions">总题数 151</span>
-<span id="statDone">已做 0 题</span>
-<span id="statCorrect">正确率 --</span>
-<span id="statStreak">🔥 连续 0 天</span>
-</div>
-<div id="dailyPanel">
-<div class="day-info" id="dayInfo"></div>
-<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-<div class="score-bar"><span id="answeredCount">已答 0/5</span><span id="timerDisplay">⏱ 00:00</span></div>
-<div id="quizArea"></div>
-<div class="btn-row" id="dailyBtns">
-<button class="btn btn-primary" onclick="submitAll('daily')">提交批改</button>
-<button class="btn btn-secondary" onclick="redoDaily()">🔄 重做</button>
-</div>
-<div class="result-panel" id="dailyResult">
-<div class="big-score" id="dailyScore">0</div>
-<div class="label">得分</div>
-<div class="detail" id="dailyDetail"></div>
-<button class="btn btn-secondary" style="margin-top:12px" onclick="startDaily()">再做5题</button>
-</div>
-</div>
-<div id="wrongPanel" style="display:none">
-<div id="wrongArea"></div>
-<div class="btn-row" id="wrongBtns">
-<button class="btn btn-primary" onclick="submitAll('wrong')">提交批改</button>
-<button class="btn btn-secondary" onclick="startWrong()">🔄 重做</button>
-<button class="btn btn-danger" onclick="clearWrong()">清空错题库</button>
-</div>
-<div class="result-panel" id="wrongResult">
-<div class="big-score" id="wrongScore">0</div>
-<div class="label">得分</div>
-<div class="detail" id="wrongDetail"></div>
-<button class="btn btn-secondary" style="margin-top:12px" onclick="startWrong()">再练一遍</button>
-</div>
-</div>
+  <h1>古诗文默写系统</h1>
+  <div class="subtitle">八年级(下) · 智能版</div>
+  
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('daily')">📅 每日练习</div>
+    <div class="tab" onclick="switchTab('wrong')">📝 错题复习 <span class="badge" id="wrongBadge" style="display:none">0</span></div>
+    <div class="tab" onclick="switchTab('mastered')">✅ 已掌握</div>
+    <div class="tab" onclick="switchTab('skipped')">⏭️ 跳过题</div>
+  </div>
+  
+  <div class="day-info" id="dayInfo"></div>
+  
+  <div class="stats-row">
+    <span id="statTotalQuestions">总题数 151</span>
+    <span id="statDone">已做 0 题</span>
+    <span id="statMastered">✅ 已掌握 0 题</span>
+    <span id="statSkipped">⏭️ 跳过 0 题</span>
+    <span id="statCorrect">正确率 --</span>
+    <span id="statStreak">🔥 连续 0 天</span>
+  </div>
+  
+  <!-- 每日练习区域 -->
+  <div id="dailyTab">
+    <div class="score-bar">
+      <span id="answeredCount">已答 0/0</span>
+      <span id="timerDisplay">⏱ 00:00</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    
+    <div id="quizArea"></div>
+    
+    <div class="btn-row" id="dailyBtns">
+      <button class="btn btn-primary" onclick="submitAll('daily')">📤 提交答案</button>
+      <button class="btn btn-secondary" onclick="redoDaily()">🔄 重新练习</button>
+    </div>
+    
+    <div class="result-panel" id="dailyResult">
+      <div class="big-score" id="dailyScore">100</div>
+      <div class="label">今日得分</div>
+      <div class="detail" id="dailyDetail"></div>
+    </div>
+  </div>
+  
+  <!-- 错题复习区域 -->
+  <div id="wrongTab" style="display:none">
+    <div id="wrongArea"></div>
+    <div class="btn-row" id="wrongBtns">
+      <button class="btn btn-primary" onclick="submitAll('wrong')">📤 提交答案</button>
+      <button class="btn btn-danger" onclick="clearWrong()">🗑️ 清空错题</button>
+    </div>
+    <div class="result-panel" id="wrongResult">
+      <div class="big-score" id="wrongScore">100</div>
+      <div class="label">错题练习得分</div>
+      <div class="detail" id="wrongDetail"></div>
+    </div>
+  </div>
+  
+  <!-- 已掌握题目区域 -->
+  <div id="masteredTab" style="display:none">
+    <div id="masteredArea"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="reviewMastered()">🔄 复习已掌握</button>
+      <button class="btn btn-danger" onclick="clearMastered()">🗑️ 清空已掌握</button>
+    </div>
+  </div>
+  
+  <!-- 跳过题目区域 -->
+  <div id="skippedTab" style="display:none">
+    <div id="skippedArea"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="trySkipped()">📝 尝试跳过题</button>
+      <button class="btn btn-danger" onclick="clearSkipped()">🗑️ 清空跳过题</button>
+    </div>
+  </div>
 </div>
 
 <script>
-// ====== 题库 ======
+// ====== 题库数据 ======
 const ALL_QUESTIONS = [
-  // 1-10题：八年级下册重点古诗文
-  {id:1,lines:["____，只有香如故。"],sources:["陆游《卜算子·咏梅》"],answers:["零落成泥碾作尘"],bc:1},
-  {id:2,lines:["浮云游子意，____。"],sources:["李白《送友人》"],answers:["落日故人情"],bc:1},
-  {id:3,lines:["竹径通幽处，____。"],sources:["常建《题破山寺后禅院》"],answers:["禅房花木深"],bc:1},
-  {id:4,lines:["安得广厦千万间，____，____！"],sources:["杜甫《茅屋为秋风所破歌》"],answers:["大庇天下寒士俱欢颜","风雨不动安如山"],bc:2},
-  {id:5,lines:["____，如闻泣幽咽。"],sources:["杜甫《石壕吏》"],answers:["夜久语声绝"],bc:1},
-  {id:6,lines:["俄顷风定云墨色，____。"],sources:["杜甫《茅屋为秋风所破歌》"],answers:["秋天漠漠向昏黑"],bc:1},
-  {id:7,lines:["____，落日故人情。"],sources:["李白《送友人》"],answers:["浮云游子意"],bc:1},
-  {id:8,lines:["黄发垂髫，____。"],sources:["陶渊明《桃花源记》"],answers:["并怡然自乐"],bc:1},
-  {id:9,lines:["凄神寒骨，____。"],sources:["柳宗元《小石潭记》"],answers:["悄怆幽邃"],bc:1},
-  {id:10,lines:["____，同是宦游人。"],sources:["王勃《送杜少府之任蜀州》"],answers:["与君离别意"],bc:1},
+  // 1-10题：陶渊明《桃花源记》
+  {id:1,lines:["____，芳草鲜美。"],sources:["陶渊明《桃花源记》"],answers:["忽逢桃花林"],bc:1},
+  {id:2,lines:["____，落英缤纷。"],sources:["陶渊明《桃花源记》"],answers:["芳草鲜美"],bc:1},
+  {id:3,lines:["____，欲穷其林。"],sources:["陶渊明《桃花源记》"],answers:["渔人甚异之"],bc:1},
+  {id:4,lines:["____，仿佛若有光。"],sources:["陶渊明《桃花源记》"],answers:["初极狭"],bc:1},
+  {id:5,lines:["____，豁然开朗。"],sources:["陶渊明《桃花源记》"],answers:["复行数十步"],bc:1},
+  {id:6,lines:["____，屋舍俨然。"],sources:["陶渊明《桃花源记》"],answers:["土地平旷"],bc:1},
+  {id:7,lines:["____，鸡犬相闻。"],sources:["陶渊明《桃花源记》"],answers:["阡陌交通"],bc:1},
+  {id:8,lines:["____，并怡然自乐。"],sources:["陶渊明《桃花源记》"],answers:["黄发垂髫"],bc:1},
+  {id:9,lines:["____，咸来问讯。"],sources:["陶渊明《桃花源记》"],answers:["村中闻有此人"],bc:1},
+  {id:10,lines:["____，皆出酒食。"],sources:["陶渊明《桃花源记》"],answers:["余人各复延至其家"],bc:1},
   
-  // 11-20题
-  {id:11,lines:["坐观垂钓者，____。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["徒有羡鱼情"],bc:1},
-  {id:12,lines:["____，波撼岳阳城。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["气蒸云梦泽"],bc:1},
-  {id:13,lines:["____，端居耻圣明。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["欲济无舟楫"],bc:1},
-  {id:14,lines:["____，徒有羡鱼情。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["坐观垂钓者"],bc:1},
-  {id:15,lines:["____，禅房花木深。"],sources:["常建《题破山寺后禅院》"],answers:["竹径通幽处"],bc:1},
-  {id:16,lines:["山光悦鸟性，____。"],sources:["常建《题破山寺后禅院》"],answers:["潭影空人心"],bc:1},
-  {id:17,lines:["____，但余钟磬音。"],sources:["常建《题破山寺后禅院》"],answers:["万籁此都寂"],bc:1},
-  {id:18,lines:["____，落日故人情。"],sources:["李白《送友人》"],answers:["浮云游子意"],bc:1},
-  {id:19,lines:["挥手自兹去，____。"],sources:["李白《送友人》"],answers:["萧萧班马鸣"],bc:1},
-  {id:20,lines:["____，萧萧班马鸣。"],sources:["李白《送友人》"],answers:["挥手自兹去"],bc:1},
+  // 11-20题：柳宗元《小石潭记》
+  {id:11,lines:["____，闻水声。"],sources:["柳宗元《小石潭记》"],answers:["从小丘西行百二十步"],bc:1},
+  {id:12,lines:["____，心乐之。"],sources:["柳宗元《小石潭记》"],answers:["如鸣珮环"],bc:1},
+  {id:13,lines:["____，下见小潭。"],sources:["柳宗元《小石潭记》"],answers:["伐竹取道"],bc:1},
+  {id:14,lines:["____，水尤清冽。"],sources:["柳宗元《小石潭记》"],answers:["全石以为底"],bc:1},
+  {id:15,lines:["____，为坻，为屿，为嵁，为岩。"],sources:["柳宗元《小石潭记》"],answers:["近岸"],bc:1},
+  {id:16,lines:["____，蒙络摇缀。"],sources:["柳宗元《小石潭记》"],answers:["青树翠蔓"],bc:1},
+  {id:17,lines:["____，参差披拂。"],sources:["柳宗元《小石潭记》"],answers:["蒙络摇缀"],bc:1},
+  {id:18,lines:["____，皆若空游无所依。"],sources:["柳宗元《小石潭记》"],answers:["潭中鱼可百许头"],bc:1},
+  {id:19,lines:["____，影布石上。"],sources:["柳宗元《小石潭记》"],answers:["日光下澈"],bc:1},
+  {id:20,lines:["____，俶尔远逝。"],sources:["柳宗元《小石潭记》"],answers:["佁然不动"],bc:1},
   
-  // 21-30题：杜甫诗三首
-  {id:21,lines:["____，城春草木深。"],sources:["杜甫《春望》"],answers:["国破山河在"],bc:1},
-  {id:22,lines:["感时花溅泪，____。"],sources:["杜甫《春望》"],answers:["恨别鸟惊心"],bc:1},
-  {id:23,lines:["烽火连三月，____。"],sources:["杜甫《春望》"],answers:["家书抵万金"],bc:1},
-  {id:24,lines:["白头搔更短，____。"],sources:["杜甫《春望》"],answers:["浑欲不胜簪"],bc:1},
-  {id:25,lines:["____，归雁入胡天。"],sources:["王维《使至塞上》"],answers:["征蓬出汉塞"],bc:1},
-  {id:26,lines:["大漠孤烟直，____。"],sources:["王维《使至塞上》"],answers:["长河落日圆"],bc:1},
-  {id:27,lines:["____，都护在燕然。"],sources:["王维《使至塞上》"],answers:["萧关逢候骑"],bc:1},
-  {id:28,lines:["____，浅草才能没马蹄。"],sources:["白居易《钱塘湖春行》"],answers:["乱花渐欲迷人眼"],bc:1},
-  {id:29,lines:["最爱湖东行不足，____。"],sources:["白居易《钱塘湖春行》"],answers:["绿杨阴里白沙堤"],bc:1},
-  {id:30,lines:["____，谁家新燕啄春泥。"],sources:["白居易《钱塘湖春行》"],answers:["几处早莺争暖树"],bc:1},
+  // 21-30题：补充柳宗元《小石潭记》
+  {id:21,lines:["____，往来翕忽。"],sources:["柳宗元《小石潭记》"],answers:["俶尔远逝"],bc:1},
+  {id:22,lines:["____，似与游者相乐。"],sources:["柳宗元《小石潭记》"],answers:["往来翕忽"],bc:1},
+  {id:23,lines:["____，斗折蛇行。"],sources:["柳宗元《小石潭记》"],answers:["潭西南而望"],bc:1},
+  {id:24,lines:["____，明灭可见。"],sources:["柳宗元《小石潭记》"],answers:["斗折蛇行"],bc:1},
+  {id:25,lines:["____，不可知其源。"],sources:["柳宗元《小石潭记》"],answers:["其岸势犬牙差互"],bc:1},
+  {id:26,lines:["____，悄怆幽邃。"],sources:["柳宗元《小石潭记》"],answers:["凄神寒骨"],bc:1},
+  {id:27,lines:["____，不可久居。"],sources:["柳宗元《小石潭记》"],answers:["以其境过清"],bc:1},
+  {id:28,lines:["____，乃记之而去。"],sources:["柳宗元《小石潭记》"],answers:["不可久居"],bc:1},
+  {id:29,lines:["____，崔氏二小生。"],sources:["柳宗元《小石潭记》"],answers:["同游者"],bc:1},
+  {id:30,lines:["____，曰恕己，曰奉壹。"],sources:["柳宗元《小石潭记》"],answers:["崔氏二小生"],bc:1},
   
-  // 31-40题：陶渊明《桃花源记》
-  {id:31,lines:["____，芳草鲜美。"],sources:["陶渊明《桃花源记》"],answers:["忽逢桃花林"],bc:1},
-  {id:32,lines:["____，落英缤纷。"],sources:["陶渊明《桃花源记》"],answers:["芳草鲜美"],bc:1},
-  {id:33,lines:["土地平旷，____。"],sources:["陶渊明《桃花源记》"],answers:["屋舍俨然"],bc:1},
-  {id:34,lines:["____，有良田美池桑竹之属。"],sources:["陶渊明《桃花源记》"],answers:["土地平旷"],bc:1},
-  {id:35,lines:["阡陌交通，____。"],sources:["陶渊明《桃花源记》"],answers:["鸡犬相闻"],bc:1},
-  {id:36,lines:["____，并怡然自乐。"],sources:["陶渊明《桃花源记》"],answers:["黄发垂髫"],bc:1},
-  {id:37,lines:["问今是何世，____。"],sources:["陶渊明《桃花源记》"],answers:["乃不知有汉"],bc:1},
-  {id:38,lines:["____，无论魏晋。"],sources:["陶渊明《桃花源记》"],answers:["乃不知有汉"],bc:1},
-  {id:39,lines:["____，遂迷，不复得路。"],sources:["陶渊明《桃花源记》"],answers:["寻向所志"],bc:1},
-  {id:40,lines:["____，后遂无问津者。"],sources:["陶渊明《桃花源记》"],answers:["未果"],bc:1},
+  // 31-40题：魏学洢《核舟记》
+  {id:31,lines:["____，罔不因势象形。"],sources:["魏学洢《核舟记》"],answers:["明有奇巧人曰王叔远"],bc:1},
+  {id:32,lines:["____，各具情态。"],sources:["魏学洢《核舟记》"],answers:["罔不因势象形"],bc:1},
+  {id:33,lines:["____，盖大苏泛赤壁云。"],sources:["魏学洢《核舟记》"],answers:["尝贻余核舟一"],bc:1},
+  {id:34,lines:["____，中轩敞者为舱。"],sources:["魏学洢《核舟记》"],answers:["舟首尾长约八分有奇"],bc:1},
+  {id:35,lines:["____，箬篷覆之。"],sources:["魏学洢《核舟记》"],answers:["中轩敞者为舱"],bc:1},
+  {id:36,lines:["____，石青糁之。"],sources:["魏学洢《核舟记》"],answers:["中峨冠而多髯者为东坡"],bc:1},
+  {id:37,lines:["____，左手抚鲁直背。"],sources:["魏学洢《核舟记》"],answers:["苏黄共阅一手卷"],bc:1},
+  {id:38,lines:["____，如有所语。"],sources:["魏学洢《核舟记》"],answers:["鲁直左手执卷末"],bc:1},
+  {id:39,lines:["____，其两膝相比者。"],sources:["魏学洢《核舟记》"],answers:["东坡现右足"],bc:1},
+  {id:40,lines:["____，各隐卷底衣褶中。"],sources:["魏学洢《核舟记》"],answers:["其两膝相比者"],bc:1},
   
-  // 41-50题：柳宗元《小石潭记》
-  {id:41,lines:["____，闻水声。"],sources:["柳宗元《小石潭记》"],answers:["从小丘西行百二十步"],bc:1},
-  {id:42,lines:["____，心乐之。"],sources:["柳宗元《小石潭记》"],answers:["闻水声"],bc:1},
-  {id:43,lines:["____，参差披拂。"],sources:["柳宗元《小石潭记》"],answers:["青树翠蔓"],bc:1},
-  {id:44,lines:["____，皆若空游无所依。"],sources:["柳宗元《小石潭记》"],answers:["潭中鱼可百许头"],bc:1},
-  {id:45,lines:["____，影布石上。"],sources:["柳宗元《小石潭记》"],answers:["日光下澈"],bc:1},
-  {id:46,lines:["____，俶尔远逝。"],sources:["柳宗元《小石潭记》"],answers:["佁然不动"],bc:1},
-  {id:47,lines:["____，往来翕忽。"],sources:["柳宗元《小石潭记》"],answers:["俶尔远逝"],bc:1},
-  {id:48,lines:["____，似与游者相乐。"],sources:["柳宗元《小石潭记》"],answers:["往来翕忽"],bc:1},
-  {id:49,lines:["____，明灭可见。"],sources:["柳宗元《小石潭记》"],answers:["潭西南而望"],bc:1},
-  {id:50,lines:["____，不可知其源。"],sources:["柳宗元《小石潭记》"],answers:["其岸势犬牙差互"],bc:1},
+  // 41-50题：补充魏学洢《核舟记》
+  {id:41,lines:["____，矫首昂视。"],sources:["魏学洢《核舟记》"],answers:["佛印绝类弥勒"],bc:1},
+  {id:42,lines:["____，神情与苏黄不属。"],sources:["魏学洢《核舟记》"],answers:["矫首昂视"],bc:1},
+  {id:43,lines:["____，诎右臂支船。"],sources:["魏学洢《核舟记》"],answers:["卧右膝"],bc:1},
+  {id:44,lines:["____，左臂挂念珠倚之。"],sources:["魏学洢《核舟记》"],answers:["诎右臂支船"],bc:1},
+  {id:45,lines:["____，珠可历历数也。"],sources:["魏学洢《核舟记》"],answers:["左臂挂念珠倚之"],bc:1},
+  {id:46,lines:["____，若听茶声然。"],sources:["魏学洢《核舟记》"],answers:["其人视端容寂"],bc:1},
+  {id:47,lines:["____，其船背稍夷。"],sources:["魏学洢《核舟记》"],answers:["其色丹"],bc:1},
+  {id:48,lines:["____，则题名其上。"],sources:["魏学洢《核舟记》"],answers:["其船背稍夷"],bc:1},
+  {id:49,lines:["____，细若蚊足。"],sources:["魏学洢《核舟记》"],answers:["又用篆章一"],bc:1},
+  {id:50,lines:["____，钩画了了。"],sources:["魏学洢《核舟记》"],answers:["细若蚊足"],bc:1},
   
-  // 51-60题：范仲淹《岳阳楼记》
-  {id:51,lines:["____，在洞庭一湖。"],sources:["范仲淹《岳阳楼记》"],answers:["予观夫巴陵胜状"],bc:1},
-  {id:52,lines:["____，吞长江。"],sources:["范仲淹《岳阳楼记》"],answers:["衔远山"],bc:1},
-  {id:53,lines:["____，横无际涯。"],sources:["范仲淹《岳阳楼记》"],answers:["浩浩汤汤"],bc:1},
-  {id:54,lines:["____，气象万千。"],sources:["范仲淹《岳阳楼记》"],answers:["朝晖夕阴"],bc:1},
-  {id:55,lines:["____，前人之述备矣。"],sources:["范仲淹《岳阳楼记》"],answers:["此则岳阳楼之大观也"],bc:1},
-  {id:56,lines:["____，得无异乎？"],sources:["范仲淹《岳阳楼记》"],answers:["览物之情"],bc:1},
-  {id:57,lines:["____，浊浪排空。"],sources:["范仲淹《岳阳楼记》"],answers:["阴风怒号"],bc:1},
-  {id:58,lines:["____，山岳潜形。"],sources:["范仲淹《岳阳楼记》"],answers:["日星隐曜"],bc:1},
-  {id:59,lines:["____，樯倾楫摧。"],sources:["范仲淹《岳阳楼记》"],answers:["商旅不行"],bc:1},
-  {id:60,lines:["____，虎啸猿啼。"],sources:["范仲淹《岳阳楼记》"],answers:["薄暮冥冥"],bc:1},
+  // 51-60题：《诗经》二首
+  {id:51,lines:["____，在河之洲。"],sources:["《诗经·关雎》"],answers:["关关雎鸠"],bc:1},
+  {id:52,lines:["____，君子好逑。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
+  {id:53,lines:["____，左右流之。"],sources:["《诗经·关雎》"],answers:["参差荇菜"],bc:1},
+  {id:54,lines:["____，寤寐求之。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
+  {id:55,lines:["____，辗转反侧。"],sources:["《诗经·关雎》"],answers:["求之不得"],bc:1},
+  {id:56,lines:["____，琴瑟友之。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
+  {id:57,lines:["____，钟鼓乐之。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
+  {id:58,lines:["____，白露为霜。"],sources:["《诗经·蒹葭》"],answers:["蒹葭苍苍"],bc:1},
+  {id:59,lines:["____，在水一方。"],sources:["《诗经·蒹葭》"],answers:["所谓伊人"],bc:1},
+  {id:60,lines:["____，道阻且长。"],sources:["《诗经·蒹葭》"],answers:["溯洄从之"],bc:1},
   
-  // 61-70题：欧阳修《醉翁亭记》
-  {id:61,lines:["____，其西南诸峰。"],sources:["欧阳修《醉翁亭记》"],answers:["环滁皆山也"],bc:1},
-  {id:62,lines:["____，林壑尤美。"],sources:["欧阳修《醉翁亭记》"],answers:["望之蔚然而深秀者"],bc:1},
-  {id:63,lines:["____，渐闻水声潺潺。"],sources:["欧阳修《醉翁亭记》"],answers:["山行六七里"],bc:1},
-  {id:64,lines:["____，有亭翼然临于泉上者。"],sources:["欧阳修《醉翁亭记》"],answers:["峰回路转"],bc:1},
-  {id:65,lines:["____，故自号曰醉翁也。"],sources:["欧阳修《醉翁亭记》"],answers:["太守与客来饮于此"],bc:1},
-  {id:66,lines:["____，在乎山水之间也。"],sources:["欧阳修《醉翁亭记》"],answers:["醉翁之意不在酒"],bc:1},
-  {id:67,lines:["____，得之心而寓之酒也。"],sources:["欧阳修《醉翁亭记》"],answers:["山水之乐"],bc:1},
-  {id:68,lines:["____，云归而岩穴暝。"],sources:["欧阳修《醉翁亭记》"],answers:["若夫日出而林霏开"],bc:1},
-  {id:69,lines:["____，晦明变化者。"],sources:["欧阳修《醉翁亭记》"],answers:["野芳发而幽香"],bc:1},
-  {id:70,lines:["____，山间之四时也。"],sources:["欧阳修《醉翁亭记》"],answers:["风霜高洁"],bc:1},
+  // 61-70题：补充《诗经》二首
+  {id:61,lines:["____，宛在水中央。"],sources:["《诗经·蒹葭》"],answers:["溯游从之"],bc:1},
+  {id:62,lines:["____，白露未晞。"],sources:["《诗经·蒹葭》"],answers:["蒹葭萋萋"],bc:1},
+  {id:63,lines:["____，在水之湄。"],sources:["《诗经·蒹葭》"],answers:["所谓伊人"],bc:1},
+  {id:64,lines:["____，道阻且跻。"],sources:["《诗经·蒹葭》"],answers:["溯洄从之"],bc:1},
+  {id:65,lines:["____，宛在水中坻。"],sources:["《诗经·蒹葭》"],answers:["溯游从之"],bc:1},
+  {id:66,lines:["____，白露未已。"],sources:["《诗经·蒹葭》"],answers:["蒹葭采采"],bc:1},
+  {id:67,lines:["____，在水之涘。"],sources:["《诗经·蒹葭》"],answers:["所谓伊人"],bc:1},
+  {id:68,lines:["____，道阻且右。"],sources:["《诗经·蒹葭》"],answers:["溯洄从之"],bc:1},
+  {id:69,lines:["____，宛在水中沚。"],sources:["《诗经·蒹葭》"],answers:["溯游从之"],bc:1},
+  {id:70,lines:["____，左右采之。"],sources:["《诗经·关雎》"],answers:["参差荇菜"],bc:1},
   
-  // 71-80题：周敦颐《爱莲说》
-  {id:71,lines:["____，可爱者甚蕃。"],sources:["周敦颐《爱莲说》"],answers:["水陆草木之花"],bc:1},
-  {id:72,lines:["____，陶后鲜有闻。"],sources:["周敦颐《爱莲说》"],answers:["自李唐来"],bc:1},
-  {id:73,lines:["____，濯清涟而不妖。"],sources:["周敦颐《爱莲说》"],answers:["出淤泥而不染"],bc:1},
-  {id:74,lines:["____，不蔓不枝。"],sources:["周敦颐《爱莲说》"],answers:["中通外直"],bc:1},
-  {id:75,lines:["____，香远益清。"],sources:["周敦颐《爱莲说》"],answers:["亭亭净植"],bc:1},
-  {id:76,lines:["____，可远观而不可亵玩焉。"],sources:["周敦颐《爱莲说》"],answers:["香远益清"],bc:1},
-  {id:77,lines:["____，花之富贵者也。"],sources:["周敦颐《爱莲说》"],answers:["牡丹"],bc:1},
-  {id:78,lines:["____，花之君子者也。"],sources:["周敦颐《爱莲说》"],answers:["莲"],bc:1},
-  {id:79,lines:["____，同予者何人？"],sources:["周敦颐《爱莲说》"],answers:["莲之爱"],bc:1},
-  {id:80,lines:["____，宜乎众矣。"],sources:["周敦颐《爱莲说》"],answers:["牡丹之爱"],bc:1},
+  // 71-80题：庄子《北冥有鱼》
+  {id:71,lines:["____，其名为鲲。"],sources:["庄子《北冥有鱼》"],answers:["北冥有鱼"],bc:1},
+  {id:72,lines:["____，不知其几千里也。"],sources:["庄子《北冥有鱼》"],answers:["鲲之大"],bc:1},
+  {id:73,lines:["____，其名为鹏。"],sources:["庄子《北冥有鱼》"],answers:["化而为鸟"],bc:1},
+  {id:74,lines:["____，其翼若垂天之云。"],sources:["庄子《北冥有鱼》"],answers:["鹏之背"],bc:1},
+  {id:75,lines:["____，是鸟也。"],sources:["庄子《北冥有鱼》"],answers:["怒而飞"],bc:1},
+  {id:76,lines:["____，海运则将徙于南冥。"],sources:["庄子《北冥有鱼》"],answers:["是鸟也"],bc:1},
+  {id:77,lines:["____，水击三千里。"],sources:["庄子《北冥有鱼》"],answers:["鹏之徙于南冥也"],bc:1},
+  {id:78,lines:["____，抟扶摇而上者九万里。"],sources:["庄子《北冥有鱼》"],answers:["水击三千里"],bc:1},
+  {id:79,lines:["____，去以六月息者也。"],sources:["庄子《北冥有鱼》"],answers:["抟扶摇而上者九万里"],bc:1},
+  {id:80,lines:["____，亦若是则已矣。"],sources:["庄子《北冥有鱼》"],answers:["其视下也"],bc:1},
   
   // 81-90题：韩愈《马说》
   {id:81,lines:["____，然后有千里马。"],sources:["韩愈《马说》"],answers:["世有伯乐"],bc:1},
   {id:82,lines:["____，而伯乐不常有。"],sources:["韩愈《马说》"],answers:["千里马常有"],bc:1},
-  {id:83,lines:["____，骈死于槽枥之间。"],sources:["韩愈《马说》"],answers:["祗辱于奴隶人之手"],bc:1},
+  {id:83,lines:["____，祗辱于奴隶人之手。"],sources:["韩愈《马说》"],answers:["故虽有名马"],bc:1},
   {id:84,lines:["____，不以千里称也。"],sources:["韩愈《马说》"],answers:["故虽有名马"],bc:1},
   {id:85,lines:["____，一食或尽粟一石。"],sources:["韩愈《马说》"],answers:["马之千里者"],bc:1},
   {id:86,lines:["____，食马者不知其能千里而食也。"],sources:["韩愈《马说》"],answers:["马之千里者"],bc:1},
@@ -244,301 +286,3 @@ const ALL_QUESTIONS = [
   {id:120,lines:["____，属国过居延。"],sources:["王维《使至塞上》"],answers:["单车欲问边"],bc:1},
   
   // 121-130题
-  {id:121,lines:["____，禅房花木深。"],sources:["常建《题破山寺后禅院》"],answers:["竹径通幽处"],bc:1},
-  {id:122,lines:["____，潭影空人心。"],sources:["常建《题破山寺后禅院》"],answers:["山光悦鸟性"],bc:1},
-  {id:123,lines:["____，但余钟磬音。"],sources:["常建《题破山寺后禅院》"],answers:["万籁此都寂"],bc:1},
-  {id:124,lines:["____，初日照高林。"],sources:["常建《题破山寺后禅院》"],answers:["清晨入古寺"],bc:1},
-  {id:125,lines:["____，落日故人情。"],sources:["李白《送友人》"],answers:["浮云游子意"],bc:1},
-  {id:126,lines:["____，萧萧班马鸣。"],sources:["李白《送友人》"],answers:["挥手自兹去"],bc:1},
-  {id:127,lines:["____，白水绕东城。"],sources:["李白《送友人》"],answers:["青山横北郭"],bc:1},
-  {id:128,lines:["____，此地一为别。"],sources:["李白《送友人》"],answers:["浮云游子意"],bc:1},
-  {id:129,lines:["____，孤蓬万里征。"],sources:["李白《送友人》"],answers:["此地一为别"],bc:1},
-  {id:130,lines:["____，落日故人情。"],sources:["李白《送友人》"],answers:["浮云游子意"],bc:1},
-  
-  // 131-140题
-  {id:131,lines:["____，徒有羡鱼情。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["坐观垂钓者"],bc:1},
-  {id:132,lines:["____，端居耻圣明。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["欲济无舟楫"],bc:1},
-  {id:133,lines:["____，波撼岳阳城。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["气蒸云梦泽"],bc:1},
-  {id:134,lines:["____，涵虚混太清。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["八月湖水平"],bc:1},
-  {id:135,lines:["____，徒有羡鱼情。"],sources:["孟浩然《望洞庭湖上张丞相》"],answers:["坐观垂钓者"],bc:1},
-  {id:136,lines:["____，只有香如故。"],sources:["陆游《卜算子·咏梅》"],answers:["零落成泥碾作尘"],bc:1},
-  {id:137,lines:["____，更著风和雨。"],sources:["陆游《卜算子·咏梅》"],answers:["已是黄昏独自愁"],bc:1},
-  {id:138,lines:["____，一任群芳妒。"],sources:["陆游《卜算子·咏梅》"],answers:["无意苦争春"],bc:1},
-  {id:139,lines:["____，只有香如故。"],sources:["陆游《卜算子·咏梅》"],answers:["零落成泥碾作尘"],bc:1},
-  {id:140,lines:["____，寂寞开无主。"],sources:["陆游《卜算子·咏梅》"],answers:["驿外断桥边"],bc:1},
-  
-  // 141-151题：补充完整
-  {id:141,lines:["____，秋天漠漠向昏黑。"],sources:["杜甫《茅屋为秋风所破歌》"],answers:["俄顷风定云墨色"],bc:1},
-  {id:142,lines:["____，大庇天下寒士俱欢颜。"],sources:["杜甫《茅屋为秋风所破歌》"],answers:["安得广厦千万间"],bc:1},
-  {id:143,lines:["____，风雨不动安如山！"],sources:["杜甫《茅屋为秋风所破歌》"],answers:["大庇天下寒士俱欢颜"],bc:1},
-  {id:144,lines:["____，吾庐独破受冻死亦足！"],sources:["杜甫《茅屋为秋风所破歌》"],answers:["何时眼前突兀见此屋"],bc:1},
-  {id:145,lines:["____，如闻泣幽咽。"],sources:["杜甫《石壕吏》"],answers:["夜久语声绝"],bc:1},
-  {id:146,lines:["____，老妇出门看。"],sources:["杜甫《石壕吏》"],answers:["老翁逾墙走"],bc:1},
-  {id:147,lines:["____，死者长已矣！"],sources:["杜甫《石壕吏》"],answers:["存者且偷生"],bc:1},
-  {id:148,lines:["____，惟有乳下孙。"],sources:["杜甫《石壕吏》"],answers:["室中更无人"],bc:1},
-  {id:149,lines:["____，出入无完裙。"],sources:["杜甫《石壕吏》"],answers:["有孙母未去"],bc:1},
-  {id:150,lines:["____，请从吏夜归。"],sources:["杜甫《石壕吏》"],answers:["老妪力虽衰"],bc:1},
-  {id:151,lines:["____，犹得备晨炊。"],sources:["杜甫《石壕吏》"],answers:["急应河阳役"],bc:1}
-];
-
-// ====== 拼音标注功能 ======
-function addPinyinToText(text) {
-  // 扩展的汉字转拼音映射（八年级古诗文常用字）
-  const pinyinMap = {
-    // 陆游《卜算子·咏梅》
-    '零':'líng', '落':'luò', '成':'chéng', '泥':'ní', '碾':'niǎn', '作':'zuò', '尘':'chén', '只':'zhǐ', '有':'yǒu', '香':'xiāng', '如':'rú', '故':'gù',
-    // 李白《送友人》
-    '浮':'fú', '云':'yún', '游':'yóu', '子':'zǐ', '意':'yì', '落':'luò', '日':'rì', '故':'gù', '人':'rén', '情':'qíng', '挥':'huī', '手':'shǒu', '自':'zì', '兹':'zī', '去':'qù', '萧':'xiāo', '班':'bān', '马':'mǎ', '鸣':'míng',
-    // 常建《题破山寺后禅院》
-    '竹':'zhú', '径':'jìng', '通':'tōng', '幽':'yōu', '处':'chù', '禅':'chán', '房':'fáng', '花':'huā', '木':'mù', '深':'shēn', '山':'shān', '光':'guāng', '悦':'yuè', '鸟':'niǎo', '性':'xìng', '潭':'tán', '影':'yǐng', '空':'kōng', '心':'xīn', '万':'wàn', '籁':'lài', '此':'cǐ', '都':'dōu', '寂':'jì', '但':'dàn', '余':'yú', '钟':'zhōng', '磬':'qìng', '音':'yīn',
-    // 杜甫《茅屋为秋风所破歌》
-    '安':'ān', '得':'dé', '广':'guǎng', '厦':'shà', '千':'qiān', '万':'wàn', '间':'jiān', '大':'dà', '庇':'bì', '天':'tiān', '下':'xià', '寒':'hán', '士':'shì', '俱':'jù', '欢':'huān', '颜':'yán', '风':'fēng', '雨':'yǔ', '不':'bù', '动':'dòng', '如':'rú', '山':'shān', '俄':'é', '顷':'qǐng', '定':'dìng', '云':'yún', '墨':'mò', '色':'sè', '秋':'qiū', '漠':'mò', '向':'xiàng', '昏':'hūn', '黑':'hēi',
-    // 杜甫《石壕吏》
-    '夜':'yè', '久':'jiǔ', '语':'yǔ', '声':'shēng', '绝':'jué', '闻':'wén', '泣':'qì', '幽':'yōu', '咽':'yè', '老':'lǎo', '翁':'wēng', '逾':'yú', '墙':'qiáng', '走':'zǒu', '妇':'fù', '出':'chū', '门':'mén', '看':'kàn',
-    // 陶渊明《桃花源记》
-    '黄':'huáng', '发':'fà', '垂':'chuí', '髫':'tiáo', '并':'bìng', '怡':'yí', '然':'rán', '自':'zì', '乐':'lè',
-    // 柳宗元《小石潭记》
-    '凄':'qī', '神':'shén', '寒':'hán', '骨':'gǔ', '悄':'qiǎo', '怆':'chuàng', '幽':'yōu', '邃':'suì',
-    // 王勃《送杜少府之任蜀州》
-    '与':'yǔ', '君':'jūn', '离':'lí', '别':'bié', '意':'yì', '同':'tóng', '是':'shì', '宦':'huàn', '游':'yóu', '人':'rén',
-    // 孟浩然《望洞庭湖上张丞相》
-    '坐':'zuò', '观':'guān', '垂':'chuí', '钓':'diào', '者':'zhě', '徒':'tú', '有':'yǒu', '羡':'xiàn', '鱼':'yú', '情':'qíng', '气':'qì', '蒸':'zhēng', '云':'yún', '梦':'mèng', '泽':'zé', '波':'bō', '撼':'hàn', '岳':'yuè', '阳':'yáng', '城':'chéng',
-    // 补充常用字
-    '国':'guó', '破':'pò', '河':'hé', '在':'zài', '城':'chéng', '春':'chūn', '草':'cǎo', '木':'mù', '深':'shēn', '感':'gǎn', '时':'shí', '花':'huā', '溅':'jiàn', '泪':'lèi', '恨':'hèn', '别':'bié', '鸟':'niǎo', '惊':'jīng', '心':'xīn', '烽':'fēng', '火':'huǒ', '连':'lián', '三':'sān', '月':'yuè', '家':'jiā', '书':'shū', '抵':'dǐ', '金':'jīn', '白':'bái', '头':'tóu', '搔':'sāo', '更':'gèng', '短':'duǎn', '浑':'hún', '欲':'yù', '胜':'shèng', '簪':'zān'
-  };
-  
-  // 为每个汉字添加拼音（如果字典中有）
-  let result = '';
-  for(let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if(pinyinMap[char]) {
-      result += `<span class="pinyin-char">${char}<span class="pinyin">${pinyinMap[char]}</span></span>`;
-    } else {
-      result += char;
-    }
-  }
-  return result;
-}
-
-let currentTab='daily', currentQuestions=[], submitted=false, timerInterval, seconds=0;
-const DAILY_QUESTION_COUNT = 5; // 每天题目数量
-
-// ====== LocalStorage ======
-function load(k,d){try{const v=localStorage.getItem('gsw_'+k);return v?JSON.parse(v):d}catch{return d}}
-function save(k,v){localStorage.setItem('gsw_'+k,JSON.stringify(v))}
-
-function getState(){return load('state',{totalQ:0,totalCorrect:0,days:{},wrongIds:[],lastDate:null,streak:0})}
-function setState(s){save('state',s)}
-
-function todayKey(){return new Date().toISOString().slice(0,10)}
-
-// ====== 每日出题 ======
-function getDailyQIds(){
-  const s=getState(), tk=todayKey();
-  if(s.days[tk]) return s.days[tk]; // 今天已出过题
-  
-  // 获取昨天的错题
-  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-  const yk=yesterday.toISOString().slice(0,10);
-  const yesterdayWrongIds=s.wrongIds||[];
-  
-  // 计算已做过的题目
-  const done=new Set();
-  Object.values(s.days).forEach(ids=>ids.forEach(id=>done.add(id)));
-  
-  // 优先选择昨天的错题（最多3题）
-  let selectedIds=[];
-  const wrongPool=yesterdayWrongIds.filter(id=>!done.has(id));
-  const wrongCount=Math.min(3,wrongPool.length);
-  if(wrongCount>0){
-    selectedIds=wrongPool.slice(0,wrongCount);
-  }
-  
-  // 从剩余题库中随机选择题目补足DAILY_QUESTION_COUNT题
-  let pool=ALL_QUESTIONS.filter(q=>!done.has(q.id) && !selectedIds.includes(q.id));
-  if(pool.length<(DAILY_QUESTION_COUNT-selectedIds.length)) pool=ALL_QUESTIONS.filter(q=>!selectedIds.includes(q.id));
-  
-  // 随机选择剩余题目
-  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
-  const remainingIds=pool.slice(0,DAILY_QUESTION_COUNT-selectedIds.length).map(q=>q.id);
-  
-  // 合并题目ID
-  const ids=[...selectedIds,...remainingIds];
-  
-  // 保存今天的题目
-  s.days[tk]=ids;
-  
-  // 更新连续天数
-  s.streak=s.days[yk]?(s.streak||0)+1:1;
-  s.lastDate=tk;
-  setState(s);
-  
-  return ids;
-}
-
-function addQuestions(newQs){
-  const existing=new Set(ALL_QUESTIONS.map(q=>q.id));
-  newQs.forEach(q=>{if(!existing.has(q.id))ALL_QUESTIONS.push(q)});
-}
-
-// ====== 渲染 ======
-function switchTab(tab){
-  currentTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`.tab:${tab==='daily'?'first':'last'}-child`).classList.add('active');
-  document.getElementById('dailyPanel').style.display=tab==='daily'?'block':'none';
-  document.getElementById('wrongPanel').style.display=tab==='wrong'?'block':'none';
-  if(tab==='daily')startDaily(); else startWrong();
-}
-
-function renderQuiz(qs,areaId){
-  const area=document.getElementById(areaId);
-  area.innerHTML='';
-  qs.forEach((q,qi)=>{
-    let html=`<div class="card" id="card_${areaId}_${qi}"><span class="q-num">${qi+1}</span>`;
-    let bi=0;
-    q.lines.forEach(line=>{
-      let l=line;
-      while(l.includes('____')){
-        l=l.replace('____',`<input type="text" data-qi="${qi}" data-bi="${bi}" data-area="${areaId}" class="blank-input" autocomplete="off">`);
-        bi++;
-      }
-      html+=`<div class="line">${l}</div>`;
-    });
-    html+=`<div class="source">${q.sources.join('；')}</div>`;
-    html+=`<div class="answer-reveal" id="reveal_${areaId}_${qi}"></div></div>`;
-    area.innerHTML+=html;
-  });
-  area.querySelectorAll('.blank-input').forEach(inp=>{
-    inp.addEventListener('input',()=>updateProgress(areaId,qs));
-    inp.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){e.preventDefault();const all=[...area.querySelectorAll('.blank-input')];const idx=all.indexOf(e.target);if(idx<all.length-1)all[idx+1].focus()}
-    });
-  });
-  submitted=false;
-  startTimer();
-}
-
-function updateProgress(areaId,qs){
-  const inputs=document.querySelectorAll(`#${areaId} .blank-input`);
-  let filled=0;inputs.forEach(i=>{if(i.value.trim())filled++});
-  const total=qs.reduce((s,q)=>s+q.bc,0);
-  if(areaId==='quizArea'){
-    document.getElementById('progressFill').style.width=(filled/total*100)+'%';
-    document.getElementById('answeredCount').textContent=`已答 ${filled}/${total}`;
-  }
-}
-
-function startTimer(){
-  seconds=0;clearInterval(timerInterval);
-  timerInterval=setInterval(()=>{
-    seconds++;
-    const m=String(Math.floor(seconds/60)).padStart(2,'0');
-    const s=String(seconds%60).padStart(2,'0');
-    document.getElementById('timerDisplay').textContent=`⏱ ${m}:${s}`;
-  },1000);
-}
-
-function submitAll(mode){
-  if(submitted)return;
-  submitted=true;clearInterval(timerInterval);
-  const areaId=mode==='daily'?'quizArea':'wrongArea';
-  const resultId=mode==='daily'?'dailyResult':'wrongResult';
-  const scoreId=mode==='daily'?'dailyScore':'wrongScore';
-  const detailId=mode==='daily'?'dailyDetail':'wrongDetail';
-  let correct=0,total=0,wrongQIds=[];
-  currentQuestions.forEach((q,qi)=>{
-    const card=document.getElementById(`card_${areaId}_${qi}`);
-    const reveal=document.getElementById(`reveal_${areaId}_${qi}`);
-    let qOk=true,revealHtml='<b>正确答案：</b>';
-    q.answers.forEach((a,bi)=>{
-      const inp=document.querySelector(`input[data-qi="${qi}"][data-bi="${bi}"][data-area="${areaId}"]`);
-      const val=inp.value.replace(/[\s，。、；：！？,.]/g,'');
-      const ans=a.replace(/[\s，。、；：！？,.]/g,'');
-      total++;
-      if(val===ans){inp.classList.add('correct-input');correct++}
-      else{inp.classList.add('wrong-input');if(!inp.value.trim())inp.value='(未作答)';qOk=false}
-      // 添加带拼音的答案
-      const pinyinAnswer=addPinyinToText(a);
-      revealHtml+=` <span style="color:#2d7d2d">${pinyinAnswer}</span>`;
-    });
-    card.classList.add(qOk?'correct':'wrong');
-    if(!qOk){reveal.style.display='block';reveal.innerHTML=revealHtml;wrongQIds.push(q.id)}
-  });
-  document.querySelectorAll(`#${areaId} .blank-input`).forEach(i=>i.disabled=true);
-  // 更新统计
-  const st=getState();
-  st.totalQ+=total;st.totalCorrect+=correct;
-  // 更新错题库：本次错的加入，本次对的从错题库移除
-  const curIds=currentQuestions.map(q=>q.id);
-  wrongQIds.forEach(id=>{if(!st.wrongIds.includes(id))st.wrongIds.push(id)});
-  curIds.forEach(id=>{if(!wrongQIds.includes(id)){st.wrongIds=st.wrongIds.filter(w=>w!==id)}});
-  setState(st);
-  // 显示结果
-  const score=Math.round(correct/total*100);
-  document.getElementById(scoreId).textContent=score;
-  document.getElementById(detailId).innerHTML=`共${total}空，答对${correct}空，答错${total-correct}空<br>用时 ${Math.floor(seconds/60)}分${seconds%60}秒`;
-  document.getElementById(resultId).style.display='block';
-  updateStats();updateWrongBadge();
-}
-
-function redoDaily(){
-  const st=getState(),tk=todayKey();
-  delete st.days[tk];
-  setState(st);
-  document.getElementById('dailyResult').style.display='none';
-  startDaily();
-}
-
-function startDaily(){
-  document.getElementById('dailyResult').style.display='none';
-  const ids=getDailyQIds();
-  currentQuestions=ids.map(id=>ALL_QUESTIONS.find(q=>q.id===id));
-  document.getElementById('dayInfo').textContent=`📅 ${todayKey()} · 第${Object.keys(getState().days).length}天`;
-  renderQuiz(currentQuestions,'quizArea');
-  updateStats();
-}
-
-function startWrong(){
-  document.getElementById('wrongResult').style.display='none';
-  const st=getState();
-  currentQuestions=st.wrongIds.map(id=>ALL_QUESTIONS.find(q=>q.id===id)).filter(Boolean);
-  if(currentQuestions.length===0){
-    document.getElementById('wrongArea').innerHTML='<div class="empty-msg">🎉 错题库为空，继续保持！</div>';
-    document.getElementById('wrongBtns').style.display='none';
-    return;
-  }
-  document.getElementById('wrongBtns').style.display='block';
-  renderQuiz(currentQuestions,'wrongArea');
-}
-
-function clearWrong(){
-  if(!confirm('确定清空错题库？'))return;
-  const st=getState();st.wrongIds=[];setState(st);
-  updateWrongBadge();startWrong();
-}
-
-function updateStats(){
-  const st=getState();
-  // 计算已做过的唯一题目数量
-  const doneSet=new Set();
-  Object.values(st.days).forEach(ids=>ids.forEach(id=>doneSet.add(id)));
-  const doneCount=doneSet.size;
-  
-  document.getElementById('statTotalQuestions').textContent=`总题数 151`;
-  document.getElementById('statDone').textContent=`已做 ${doneCount} 题`;
-  document.getElementById('statCorrect').textContent=st.totalQ?`正确率 ${Math.round(st.totalCorrect/st.totalQ*100)}%`:'正确率 --';
-  document.getElementById('statStreak').textContent=`🔥 连续 ${st.streak||0} 天`;
-}
-
-function updateWrongBadge(){
-  const n=getState().wrongIds.length;
-  const badge=document.getElementById('wrongBadge');
-  if(n>0){badge.style.display='inline';badge.textContent=n}else{badge.style.display='none'}
-}
-
-// 初始化
-startDaily();updateWrongBadge();
-</script>
-</body>
-</html>
