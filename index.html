@@ -173,114 +173,438 @@ const ALL_QUESTIONS = [
   {id:27,lines:["____，不可久居。"],sources:["柳宗元《小石潭记》"],answers:["以其境过清"],bc:1},
   {id:28,lines:["____，乃记之而去。"],sources:["柳宗元《小石潭记》"],answers:["不可久居"],bc:1},
   {id:29,lines:["____，崔氏二小生。"],sources:["柳宗元《小石潭记》"],answers:["同游者"],bc:1},
-  {id:30,lines:["____，曰恕己，曰奉壹。"],sources:["柳宗元《小石潭记》"],answers:["崔氏二小生"],bc:1},
+  {id:30,lines:["____，曰恕己，曰奉壹。"],sources:["柳宗元《小石潭记》"],answers:["崔氏二小生"],bc:1}
+];
+
+// ====== 拼音标注库 ======
+const PINYIN_MAP = {
+  "忽":"hū","逢":"féng","桃":"táo","花":"huā","林":"lín",
+  "芳":"fāng","草":"cǎo","鲜":"xiān","美":"měi",
+  "落":"luò","英":"yīng","缤":"bīn","纷":"fēn",
+  "渔":"yú","人":"rén","甚":"shèn","异":"yì","之":"zhī",
+  "初":"chū","极":"jí","狭":"xiá","仿":"fǎng","佛":"fú",
+  "复":"fù","行":"xíng","数":"shù","十":"shí","步":"bù",
+  "土":"tǔ","地":"dì","平":"píng","旷":"kuàng","屋":"wū","舍":"shè","俨":"yǎn","然":"rán",
+  "阡":"qiān","陌":"mò","交":"jiāo","通":"tōng","鸡":"jī","犬":"quǎn","相":"xiāng","闻":"wén",
+  "黄":"huáng","发":"fà","垂":"chuí","髫":"tiáo","并":"bìng","怡":"yí","自":"zì","乐":"lè",
+  "村":"cūn","中":"zhōng","闻":"wén","有":"yǒu","此":"cǐ","人":"rén","咸":"xián","来":"lái","问":"wèn","讯":"xùn",
+  "余":"yú","人":"rén","各":"gè","复":"fù","延":"yán","至":"zhì","其":"qí","家":"jiā","皆":"jiē","出":"chū","酒":"jiǔ","食":"shí"
+};
+
+// ====== 本地存储管理 ======
+function getStorage(key, defaultValue = []) {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function setStorage(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+// ====== 拼音标注函数 ======
+function addPinyin(text) {
+  let result = '';
+  for (let char of text) {
+    if (PINYIN_MAP[char]) {
+      result += `<span class="pinyin-char">${char}<span class="pinyin">${PINYIN_MAP[char]}</span></span>`;
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
+// ====== 状态管理 ======
+let currentTab = 'daily';
+let dailyQuestions = [];
+let wrongQuestions = getStorage('wrongQuestions', []);
+let masteredQuestions = getStorage('masteredQuestions', []);
+let skippedQuestions = getStorage('skippedQuestions', []);
+let answeredCount = 0;
+let startTime = Date.now();
+
+// ====== 初始化 ======
+function init() {
+  updateStats();
+  generateDailyQuestions();
+  updateDayInfo();
+  startTimer();
+  renderQuestions();
+}
+
+// ====== 生成每日题目 ======
+function generateDailyQuestions() {
+  const allIds = ALL_QUESTIONS.map(q => q.id);
+  const masteredIds = masteredQuestions;
+  const skippedIds = skippedQuestions;
   
-  // 31-40题：魏学洢《核舟记》
-  {id:31,lines:["____，罔不因势象形。"],sources:["魏学洢《核舟记》"],answers:["明有奇巧人曰王叔远"],bc:1},
-  {id:32,lines:["____，各具情态。"],sources:["魏学洢《核舟记》"],answers:["罔不因势象形"],bc:1},
-  {id:33,lines:["____，盖大苏泛赤壁云。"],sources:["魏学洢《核舟记》"],answers:["尝贻余核舟一"],bc:1},
-  {id:34,lines:["____，中轩敞者为舱。"],sources:["魏学洢《核舟记》"],answers:["舟首尾长约八分有奇"],bc:1},
-  {id:35,lines:["____，箬篷覆之。"],sources:["魏学洢《核舟记》"],answers:["中轩敞者为舱"],bc:1},
-  {id:36,lines:["____，石青糁之。"],sources:["魏学洢《核舟记》"],answers:["中峨冠而多髯者为东坡"],bc:1},
-  {id:37,lines:["____，左手抚鲁直背。"],sources:["魏学洢《核舟记》"],answers:["苏黄共阅一手卷"],bc:1},
-  {id:38,lines:["____，如有所语。"],sources:["魏学洢《核舟记》"],answers:["鲁直左手执卷末"],bc:1},
-  {id:39,lines:["____，其两膝相比者。"],sources:["魏学洢《核舟记》"],answers:["东坡现右足"],bc:1},
-  {id:40,lines:["____，各隐卷底衣褶中。"],sources:["魏学洢《核舟记》"],answers:["其两膝相比者"],bc:1},
+  // 排除已掌握和跳过的题目
+  const availableIds = allIds.filter(id => 
+    !masteredIds.includes(id) && !skippedIds.includes(id)
+  );
   
-  // 41-50题：补充魏学洢《核舟记》
-  {id:41,lines:["____，矫首昂视。"],sources:["魏学洢《核舟记》"],answers:["佛印绝类弥勒"],bc:1},
-  {id:42,lines:["____，神情与苏黄不属。"],sources:["魏学洢《核舟记》"],answers:["矫首昂视"],bc:1},
-  {id:43,lines:["____，诎右臂支船。"],sources:["魏学洢《核舟记》"],answers:["卧右膝"],bc:1},
-  {id:44,lines:["____，左臂挂念珠倚之。"],sources:["魏学洢《核舟记》"],answers:["诎右臂支船"],bc:1},
-  {id:45,lines:["____，珠可历历数也。"],sources:["魏学洢《核舟记》"],answers:["左臂挂念珠倚之"],bc:1},
-  {id:46,lines:["____，若听茶声然。"],sources:["魏学洢《核舟记》"],answers:["其人视端容寂"],bc:1},
-  {id:47,lines:["____，其船背稍夷。"],sources:["魏学洢《核舟记》"],answers:["其色丹"],bc:1},
-  {id:48,lines:["____，则题名其上。"],sources:["魏学洢《核舟记》"],answers:["其船背稍夷"],bc:1},
-  {id:49,lines:["____，细若蚊足。"],sources:["魏学洢《核舟记》"],answers:["又用篆章一"],bc:1},
-  {id:50,lines:["____，钩画了了。"],sources:["魏学洢《核舟记》"],answers:["细若蚊足"],bc:1},
+  // 添加最多3道错题
+  const wrongIds = wrongQuestions.slice(0, 3);
+  const dailyIds = [...wrongIds];
   
-  // 51-60题：《诗经》二首
-  {id:51,lines:["____，在河之洲。"],sources:["《诗经·关雎》"],answers:["关关雎鸠"],bc:1},
-  {id:52,lines:["____，君子好逑。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
-  {id:53,lines:["____，左右流之。"],sources:["《诗经·关雎》"],answers:["参差荇菜"],bc:1},
-  {id:54,lines:["____，寤寐求之。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
-  {id:55,lines:["____，辗转反侧。"],sources:["《诗经·关雎》"],answers:["求之不得"],bc:1},
-  {id:56,lines:["____，琴瑟友之。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
-  {id:57,lines:["____，钟鼓乐之。"],sources:["《诗经·关雎》"],answers:["窈窕淑女"],bc:1},
-  {id:58,lines:["____，白露为霜。"],sources:["《诗经·蒹葭》"],answers:["蒹葭苍苍"],bc:1},
-  {id:59,lines:["____，在水一方。"],sources:["《诗经·蒹葭》"],answers:["所谓伊人"],bc:1},
-  {id:60,lines:["____，道阻且长。"],sources:["《诗经·蒹葭》"],answers:["溯洄从之"],bc:1},
+  // 补充其他题目到5道
+  const remainingIds = availableIds.filter(id => !dailyIds.includes(id));
+  const needed = Math.max(0, 5 - dailyIds.length);
+  const randomIds = shuffleArray(remainingIds).slice(0, needed);
   
-  // 61-70题：补充《诗经》二首
-  {id:61,lines:["____，宛在水中央。"],sources:["《诗经·蒹葭》"],answers:["溯游从之"],bc:1},
-  {id:62,lines:["____，白露未晞。"],sources:["《诗经·蒹葭》"],answers:["蒹葭萋萋"],bc:1},
-  {id:63,lines:["____，在水之湄。"],sources:["《诗经·蒹葭》"],answers:["所谓伊人"],bc:1},
-  {id:64,lines:["____，道阻且跻。"],sources:["《诗经·蒹葭》"],answers:["溯洄从之"],bc:1},
-  {id:65,lines:["____，宛在水中坻。"],sources:["《诗经·蒹葭》"],answers:["溯游从之"],bc:1},
-  {id:66,lines:["____，白露未已。"],sources:["《诗经·蒹葭》"],answers:["蒹葭采采"],bc:1},
-  {id:67,lines:["____，在水之涘。"],sources:["《诗经·蒹葭》"],answers:["所谓伊人"],bc:1},
-  {id:68,lines:["____，道阻且右。"],sources:["《诗经·蒹葭》"],answers:["溯洄从之"],bc:1},
-  {id:69,lines:["____，宛在水中沚。"],sources:["《诗经·蒹葭》"],answers:["溯游从之"],bc:1},
-  {id:70,lines:["____，左右采之。"],sources:["《诗经·关雎》"],answers:["参差荇菜"],bc:1},
+  dailyQuestions = [...dailyIds, ...randomIds];
+  answeredCount = 0;
+  updateProgress();
+}
+
+// ====== 渲染题目 ======
+function renderQuestions() {
+  const area = document.getElementById('quizArea');
+  if (!area) return;
   
-  // 71-80题：庄子《北冥有鱼》
-  {id:71,lines:["____，其名为鲲。"],sources:["庄子《北冥有鱼》"],answers:["北冥有鱼"],bc:1},
-  {id:72,lines:["____，不知其几千里也。"],sources:["庄子《北冥有鱼》"],answers:["鲲之大"],bc:1},
-  {id:73,lines:["____，其名为鹏。"],sources:["庄子《北冥有鱼》"],answers:["化而为鸟"],bc:1},
-  {id:74,lines:["____，其翼若垂天之云。"],sources:["庄子《北冥有鱼》"],answers:["鹏之背"],bc:1},
-  {id:75,lines:["____，是鸟也。"],sources:["庄子《北冥有鱼》"],answers:["怒而飞"],bc:1},
-  {id:76,lines:["____，海运则将徙于南冥。"],sources:["庄子《北冥有鱼》"],answers:["是鸟也"],bc:1},
-  {id:77,lines:["____，水击三千里。"],sources:["庄子《北冥有鱼》"],answers:["鹏之徙于南冥也"],bc:1},
-  {id:78,lines:["____，抟扶摇而上者九万里。"],sources:["庄子《北冥有鱼》"],answers:["水击三千里"],bc:1},
-  {id:79,lines:["____，去以六月息者也。"],sources:["庄子《北冥有鱼》"],answers:["抟扶摇而上者九万里"],bc:1},
-  {id:80,lines:["____，亦若是则已矣。"],sources:["庄子《北冥有鱼》"],answers:["其视下也"],bc:1},
+  area.innerHTML = '';
   
-  // 81-90题：韩愈《马说》
-  {id:81,lines:["____，然后有千里马。"],sources:["韩愈《马说》"],answers:["世有伯乐"],bc:1},
-  {id:82,lines:["____，而伯乐不常有。"],sources:["韩愈《马说》"],answers:["千里马常有"],bc:1},
-  {id:83,lines:["____，祗辱于奴隶人之手。"],sources:["韩愈《马说》"],answers:["故虽有名马"],bc:1},
-  {id:84,lines:["____，不以千里称也。"],sources:["韩愈《马说》"],answers:["故虽有名马"],bc:1},
-  {id:85,lines:["____，一食或尽粟一石。"],sources:["韩愈《马说》"],answers:["马之千里者"],bc:1},
-  {id:86,lines:["____，食马者不知其能千里而食也。"],sources:["韩愈《马说》"],answers:["马之千里者"],bc:1},
-  {id:87,lines:["____，力不足，才美不外见。"],sources:["韩愈《马说》"],answers:["食不饱"],bc:1},
-  {id:88,lines:["____，安求其能千里也？"],sources:["韩愈《马说》"],answers:["且欲与常马等不可得"],bc:1},
-  {id:89,lines:["____，鸣之而不能通其意。"],sources:["韩愈《马说》"],answers:["策之不以其道"],bc:1},
-  {id:90,lines:["____，执策而临之。"],sources:["韩愈《马说》"],answers:["其真无马邪"],bc:1},
+  if (dailyQuestions.length === 0) {
+    area.innerHTML = '<div class="empty-msg">🎉 今日已完成所有练习！</div>';
+    return;
+  }
   
-  // 91-100题：苏轼《记承天寺夜游》
-  {id:91,lines:["____，月色入户。"],sources:["苏轼《记承天寺夜游》"],answers:["元丰六年十月十二日夜"],bc:1},
-  {id:92,lines:["____，欣然起行。"],sources:["苏轼《记承天寺夜游》"],answers:["念无与为乐者"],bc:1},
-  {id:93,lines:["____，相与步于中庭。"],sources:["苏轼《记承天寺夜游》"],answers:["怀民亦未寝"],bc:1},
-  {id:94,lines:["____，水中藻荇交横。"],sources:["苏轼《记承天寺夜游》"],answers:["庭下如积水空明"],bc:1},
-  {id:95,lines:["____，盖竹柏影也。"],sources:["苏轼《记承天寺夜游》"],answers:["水中藻荇交横"],bc:1},
-  {id:96,lines:["____，但少闲人如吾两人者耳。"],sources:["苏轼《记承天寺夜游》"],answers:["何夜无月"],bc:1},
+  dailyQuestions.forEach((qId, index) => {
+    const question = ALL_QUESTIONS.find(q => q.id === qId);
+    if (!question) return;
+    
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div>
+        <span class="q-num">${index + 1}</span>
+        <span class="source">${question.sources.join('、')}</span>
+      </div>
+      ${question.lines.map(line => `
+        <div class="line">${line.replace('____', '<input type="text" id="input-${qId}" placeholder="填写答案">')}</div>
+      `).join('')}
+      <div class="answer-reveal" id="answer-${qId}"></div>
+      <div class="action-buttons">
+        <button class="btn-skip" onclick="skipQuestion(${qId})" ${skippedQuestions.includes(qId) ? 'disabled' : ''}>⏭️ 跳过</button>
+        <button class="btn-mastered" onclick="markMastered(${qId})" ${masteredQuestions.includes(qId) ? 'disabled' : ''}>✅ 已掌握</button>
+      </div>
+    `;
+    area.appendChild(card);
+  });
+}
+
+// ====== 提交答案 ======
+function submitAll(type) {
+  let score = 0;
+  let total = 0;
+  const wrongIds = [];
   
-  // 97-100题：补充苏轼《记承天寺夜游》
-  {id:97,lines:["____，盖竹柏影也。"],sources:["苏轼《记承天寺夜游》"],answers:["水中藻荇交横"],bc:1},
-  {id:98,lines:["____，但少闲人如吾两人者耳。"],sources:["苏轼《记承天寺夜游》"],answers:["何夜无月"],bc:1},
-  {id:99,lines:["____，何处无竹柏？"],sources:["苏轼《记承天寺夜游》"],answers:["何夜无月"],bc:1},
-  {id:100,lines:["____，但少闲人如吾两人者耳。"],sources:["苏轼《记承天寺夜游》"],answers:["何夜无月"],bc:1},
+  dailyQuestions.forEach(qId => {
+    const question = ALL_QUESTIONS.find(q => q.id === qId);
+    if (!question) return;
+    
+    const input = document.getElementById(`input-${qId}`);
+    const answerDiv = document.getElementById(`answer-${qId}`);
+    
+    if (input && answerDiv) {
+      const userAnswer = input.value.trim();
+      const correctAnswer = question.answers[0];
+      
+      if (userAnswer === correctAnswer) {
+        input.className = 'correct-input';
+        answerDiv.innerHTML = `✅ 正确：${addPinyin(correctAnswer)}`;
+        answerDiv.style.display = 'block';
+        score++;
+      } else {
+        input.className = 'wrong-input';
+        answerDiv.innerHTML = `❌ 正确答案：${addPinyin(correctAnswer)}`;
+        answerDiv.style.display = 'block';
+        wrongIds.push(qId);
+      }
+      
+      total++;
+    }
+  });
   
-  // 101-110题：补充题目
-  {id:101,lines:["____，悠然见南山。"],sources:["陶渊明《饮酒》"],answers:["采菊东篱下"],bc:1},
-  {id:102,lines:["____，飞鸟相与还。"],sources:["陶渊明《饮酒》"],answers:["山气日夕佳"],bc:1},
-  {id:103,lines:["____，此中有真意。"],sources:["陶渊明《饮酒》"],answers:["山气日夕佳"],bc:1},
-  {id:104,lines:["____，欲辨已忘言。"],sources:["陶渊明《饮酒》"],answers:["此中有真意"],bc:1},
-  {id:105,lines:["____，风烟望五津。"],sources:["王勃《送杜少府之任蜀州》"],answers:["城阙辅三秦"],bc:1},
-  {id:106,lines:["____，同是宦游人。"],sources:["王勃《送杜少府之任蜀州》"],answers:["与君离别意"],bc:1},
-  {id:107,lines:["____，天涯若比邻。"],sources:["王勃《送杜少府之任蜀州》"],answers:["海内存知己"],bc:1},
-  {id:108,lines:["____，儿女共沾巾。"],sources:["王勃《送杜少府之任蜀州》"],answers:["无为在歧路"],bc:1},
-  {id:109,lines:["____，浑欲不胜簪。"],sources:["杜甫《春望》"],answers:["白头搔更短"],bc:1},
-  {id:110,lines:["____，家书抵万金。"],sources:["杜甫《春望》"],answers:["烽火连三月"],bc:1},
+  // 更新错题
+  wrongIds.forEach(id => {
+    if (!wrongQuestions.includes(id)) {
+      wrongQuestions.push(id);
+    }
+  });
+  setStorage('wrongQuestions', wrongQuestions);
   
-  // 111-120题
-  {id:111,lines:["____，恨别鸟惊心。"],sources:["杜甫《春望》"],answers:["感时花溅泪"],bc:1},
-  {id:112,lines:["____，城春草木深。"],sources:["杜甫《春望》"],answers:["国破山河在"],bc:1},
-  {id:113,lines:["____，浅草才能没马蹄。"],sources:["白居易《钱塘湖春行》"],answers:["乱花渐欲迷人眼"],bc:1},
-  {id:114,lines:["____，绿杨阴里白沙堤。"],sources:["白居易《钱塘湖春行》"],answers:["最爱湖东行不足"],bc:1},
-  {id:115,lines:["____，谁家新燕啄春泥。"],sources:["白居易《钱塘湖春行》"],answers:["几处早莺争暖树"],bc:1},
-  {id:116,lines:["____，水面初平云脚低。"],sources:["白居易《钱塘湖春行》"],answers:["孤山寺北贾亭西"],bc:1},
-  {id:117,lines:["____，长河落日圆。"],sources:["王维《使至塞上》"],answers:["大漠孤烟直"],bc:1},
-  {id:118,lines:["____，都护在燕然。"],sources:["王维《使至塞上》"],answers:["萧关逢候骑"],bc:1},
-  {id:119,lines:["____，归雁入胡天。"],sources:["王维《使至塞上》"],answers:["征蓬出汉塞"],bc:1},
-  {id:120,lines:["____，属国过居延。"],sources:["王维《使至塞上》"],answers:["单车欲问边"],
+  // 显示结果
+  const resultDiv = document.getElementById(`${type}Result`);
+  const scoreDiv = document.getElementById(`${type}Score`);
+  const detailDiv = document.getElementById(`${type}Detail`);
+  
+  if (resultDiv && scoreDiv && detailDiv) {
+    const percent = total > 0 ? Math.round((score / total) * 100) : 0;
+    scoreDiv.textContent = percent;
+    detailDiv.innerHTML = `答对 ${score} 题，共 ${total} 题<br>错题已自动加入错题复习`;
+    resultDiv.style.display = 'block';
+  }
+  
+  updateStats();
+}
+
+// ====== 跳过题目 ======
+function skipQuestion(qId) {
+  if (!skippedQuestions.includes(qId)) {
+    skippedQuestions.push(qId);
+    setStorage('skippedQuestions', skippedQuestions);
+    updateStats();
+    renderQuestions();
+  }
+}
+
+// ====== 标记已掌握 ======
+function markMastered(qId) {
+  if (!masteredQuestions.includes(qId)) {
+    masteredQuestions.push(qId);
+    setStorage('masteredQuestions', masteredQuestions);
+    updateStats();
+    renderQuestions();
+  }
+}
+
+// ====== 更新统计 ======
+function updateStats() {
+  const total = ALL_QUESTIONS.length;
+  const done = masteredQuestions.length + wrongQuestions.length + skippedQuestions.length;
+  const mastered = masteredQuestions.length;
+  const skipped = skippedQuestions.length;
+  const correctRate = done > 0 ? Math.round((mastered / done) * 100) : 0;
+  
+  document.getElementById('statTotalQuestions').textContent = `总题数 ${total}`;
+  document.getElementById('statDone').textContent = `已做 ${done} 题`;
+  document.getElementById('statMastered').textContent = `✅ 已掌握 ${mastered} 题`;
+  document.getElementById('statSkipped').textContent = `⏭️ 跳过 ${skipped} 题`;
+  document.getElementById('statCorrect').textContent = `正确率 ${correctRate}%`;
+  
+  // 更新错题徽章
+  const wrongBadge = document.getElementById('wrongBadge');
+  if (wrongBadge) {
+    if (wrongQuestions.length > 0) {
+      wrongBadge.textContent = wrongQuestions.length;
+      wrongBadge.style.display = 'inline-block';
+    } else {
+      wrongBadge.style.display = 'none';
+    }
+  }
+}
+
+// ====== 更新进度 ======
+function updateProgress() {
+  const progress = dailyQuestions.length > 0 ? Math.round((answeredCount / dailyQuestions.length) * 100) : 0;
+  document.getElementById('progressFill').style.width = `${progress}%`;
+  document.getElementById('answeredCount').textContent = `已答 ${answeredCount}/${dailyQuestions.length}`;
+}
+
+// ====== 切换标签页 ======
+function switchTab(tab) {
+  currentTab = tab;
+  
+  // 更新标签样式
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.textContent.includes(tab === 'daily' ? '每日练习' : 
+                               tab === 'wrong' ? '错题复习' :
+                               tab === 'mastered' ? '已掌握' : '跳过题')) {
+      t.classList.add('active');
+    }
+  });
+  
+  // 显示对应区域
+  document.getElementById('dailyTab').style.display = tab === 'daily' ? 'block' : 'none';
+  document.getElementById('wrongTab').style.display = tab === 'wrong' ? 'block' : 'none';
+  document.getElementById('masteredTab').style.display = tab === 'mastered' ? 'block' : 'none';
+  document.getElementById('skippedTab').style.display = tab === 'skipped' ? 'block' : 'none';
+  
+  // 加载对应内容
+  if (tab === 'wrong') loadWrongQuestions();
+  if (tab === 'mastered') loadMasteredQuestions();
+  if (tab === 'skipped') loadSkippedQuestions();
+}
+
+// ====== 加载错题 ======
+function loadWrongQuestions() {
+  const area = document.getElementById('wrongArea');
+  if (!area) return;
+  
+  area.innerHTML = '';
+  
+  if (wrongQuestions.length === 0) {
+    area.innerHTML = '<div class="empty-msg">🎉 没有错题需要复习！</div>';
+    return;
+  }
+  
+  wrongQuestions.forEach((qId, index) => {
+    const question = ALL_QUESTIONS.find(q => q.id === qId);
+    if (!question) return;
+    
+    const card = document.createElement('div');
+    card.className = 'card wrong';
+    card.innerHTML = `
+      <div>
+        <span class="q-num">${index + 1}</span>
+        <span class="source">${question.sources.join('、')}</span>
+      </div>
+      ${question.lines.map(line => `
+        <div class="line">${line.replace('____', '<input type="text" id="wrong-input-${qId}" placeholder="填写答案">')}</div>
+      `).join('')}
+      <div class="answer-reveal" id="wrong-answer-${qId}"></div>
+    `;
+    area.appendChild(card);
+  });
+}
+
+// ====== 加载已掌握题目 ======
+function loadMasteredQuestions() {
+  const area = document.getElementById('masteredArea');
+  if (!area) return;
+  
+  area.innerHTML = '';
+  
+  if (masteredQuestions.length === 0) {
+    area.innerHTML = '<div class="empty-msg">还没有标记为已掌握的题目</div>';
+    return;
+  }
+  
+  masteredQuestions.forEach((qId, index) => {
+    const question = ALL_QUESTIONS.find(q => q.id === qId);
+    if (!question) return;
+    
+    const card = document.createElement('div');
+    card.className = 'card mastered';
+    card.innerHTML = `
+      <div>
+        <span class="q-num">${index + 1}</span>
+        <span class="source">${question.sources.join('、')}</span>
+      </div>
+      <div class="line">${question.lines[0].replace('____', `<strong>${addPinyin(question.answers[0])}</strong>`)}</div>
+    `;
+    area.appendChild(card);
+  });
+}
+
+// ====== 加载跳过题目 ======
+function loadSkippedQuestions() {
+  const area = document.getElementById('skippedArea');
+  if (!area) return;
+  
+  area.innerHTML = '';
+  
+  if (skippedQuestions.length === 0) {
+    area.innerHTML = '<div class="empty-msg">还没有跳过的题目</div>';
+    return;
+  }
+  
+  skippedQuestions.forEach((qId, index) => {
+    const question = ALL_QUESTIONS.find(q => q.id === qId);
+    if (!question) return;
+    
+    const card = document.createElement('div');
+    card.className = 'card skipped';
+    card.innerHTML = `
+      <div>
+        <span class="q-num">${index + 1}</span>
+        <span class="source">${question.sources.join('、')}</span>
+      </div>
+      <div class="line">${question.lines[0].replace('____', `<strong>${addPinyin(question.answers[0])}</strong>`)}</div>
+    `;
+    area.appendChild(card);
+  });
+}
+
+// ====== 工具函数 ======
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function updateDayInfo() {
+  const now = new Date();
+  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+  document.getElementById('dayInfo').textContent = now.toLocaleDateString('zh-CN', options);
+}
+
+function startTimer() {
+  setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const seconds = (elapsed % 60).toString().padStart(2, '0');
+    document.getElementById('timerDisplay').textContent = `⏱ ${minutes}:${seconds}`;
+  }, 1000);
+}
+
+// ====== 其他功能 ======
+function redoDaily() {
+  generateDailyQuestions();
+  renderQuestions();
+  document.getElementById('dailyResult').style.display = 'none';
+}
+
+function clearWrong() {
+  if (confirm('确定要清空所有错题吗？')) {
+    wrongQuestions = [];
+    setStorage('wrongQuestions', []);
+    loadWrongQuestions();
+    updateStats();
+  }
+}
+
+function clearMastered() {
+  if (confirm('确定要清空所有已掌握的题目吗？')) {
+    masteredQuestions = [];
+    setStorage('masteredQuestions', []);
+    loadMasteredQuestions();
+    updateStats();
+  }
+}
+
+function clearSkipped() {
+  if (confirm('确定要清空所有跳过的题目吗？')) {
+    skippedQuestions = [];
+    setStorage('skippedQuestions', []);
+    loadSkippedQuestions();
+    updateStats();
+  }
+}
+
+function reviewMastered() {
+  alert('已掌握的题目将重新加入每日练习');
+  masteredQuestions = [];
+  setStorage('masteredQuestions', []);
+  updateStats();
+  switchTab('daily');
+  generateDailyQuestions();
+  renderQuestions();
+}
+
+function trySkipped() {
+  alert('跳过的题目将重新加入每日练习');
+  skippedQuestions = [];
+  setStorage('skippedQuestions', []);
+  updateStats();
+  switchTab('daily');
+  generateDailyQuestions();
+  renderQuestions();
+}
+
+// ====== 页面加载完成 ======
+window.onload = init;
+</script>
+</body>
+</html>
